@@ -50,8 +50,8 @@ export default function PrivacyRoute() {
           usa Opinara.
         </li>
         <li>
-          <strong>Personas que nos contactan:</strong> quienes completan el formulario de contacto de nuestra página
-          web o nos escriben por WhatsApp.
+          <strong>Personas que nos contactan:</strong> quienes completan el formulario de contacto de nuestra página web
+          o nos escriben por WhatsApp.
         </li>
       </ul>
 
@@ -159,8 +159,8 @@ export default function PrivacyRoute() {
       <h3 id="contacto">3.7 Formulario de contacto y WhatsApp</h3>
       <ul>
         <li>
-          <strong>Qué datos:</strong> nombre, email y nombre del comercio. Si querés, también teléfono, ciudad,
-          cantidad de sucursales y un mensaje.
+          <strong>Qué datos:</strong> nombre, email y nombre del comercio. Si querés, también teléfono, ciudad, cantidad
+          de sucursales y un mensaje.
         </li>
         <li>
           <strong>Para qué:</strong> responder tu consulta y, si querés usar Opinara, crearte la cuenta. No los usamos
@@ -175,7 +175,6 @@ export default function PrivacyRoute() {
 
       <h2 id="proveedores">4. Con quién compartimos datos</h2>
       <p>Usamos proveedores que tratan datos por cuenta nuestra y solo para prestar el servicio:</p>
-      {/* Faltan el hosting del servidor y la base de datos: se suman cuando se elijan, antes de publicar la app. */}
       <LegalTable
         head={['Proveedor', 'Para qué', 'Ubicación']}
         rows={[
@@ -186,7 +185,9 @@ export default function PrivacyRoute() {
           ],
           ['Groq, Inc.', 'Redactar las sugerencias de respuesta (sección 3.4)', 'Estados Unidos'],
           ['Resend', 'Enviar emails del servicio: invitaciones y recuperación de contraseña', 'Estados Unidos'],
-          ['Cloudflare, Inc.', 'Alojar y servir nuestra página web', 'Estados Unidos'],
+          ['Cloudflare, Inc.', 'Alojar y servir nuestra página web y la aplicación', 'Estados Unidos'],
+          ['Render Services, Inc.', 'Alojar el servidor de la aplicación', 'Estados Unidos'],
+          ['MongoDB, Inc.', 'Alojar la base de datos (MongoDB Atlas, sobre Amazon Web Services)', 'Estados Unidos'],
           ['FormSubmit', 'Reenviarnos por email el formulario de contacto (sección 3.7)', 'Fuera de Argentina'],
           ['WhatsApp LLC', 'Conversaciones, solo si nos escribís por WhatsApp (sección 3.7)', 'Estados Unidos'],
         ]}
