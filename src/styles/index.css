@@ -1,0 +1,305 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Sistema visual de Opinara: editorial, sobre papel.
+ *
+ * - Papel (`--background`) cálido y tinta (`--foreground`) casi negra: la jerarquía la dan la
+ *   tipografía, el aire y líneas finas, no tarjetas con sombra.
+ * - Petróleo (`--primary` = `--brand`): la marca, la acción principal de cada vista, lo activo y
+ *   las cifras. Lo "hecho" (respondida, conectada) también es petróleo: un solo verde.
+ * - Ámbar (`--warning`) solo para las estrellas; su versión oscura (`--warning-strong`) para texto.
+ * - Estados con fondo suave opaco (`--*-soft`) y texto fuerte.
+ *
+ * Contraste WCAG medido sobre las combinaciones reales:
+ * - texto 4.5:1 o más: `--muted-foreground` 5.4 sobre papel y 5.0 sobre `--muted`; blanco sobre
+ *   `--primary` 6.4; `--destructive` y `--warning-strong` 5+ sobre sus fondos suaves.
+ * - límites de controles y gráficos 3:1 o más: `--input` 3.4 sobre papel, `--warning` (las
+ *   estrellas) 3.6, `--ring` 5.4.
+ */
+:root {
+  /* No hay modo oscuro: sin esto, con el sistema en oscuro, el navegador pintaba oscuros los
+     controles nativos (scrollbars, desplegables) sobre la interfaz clara. */
+  color-scheme: light;
+  --radius: 0.625rem;
+  --background: #f6f3ec;
+  --foreground: #17201e;
+  --card: #fffdf8;
+  --card-foreground: #17201e;
+  --popover: #fffdf8;
+  --popover-foreground: #17201e;
+  --primary: #0b6b60;
+  --primary-foreground: #ffffff;
+  --secondary: #ede9df;
+  --secondary-foreground: #17201e;
+  --muted: #eeeae1;
+  --muted-foreground: #5c6663;
+  --accent: #ebe6da;
+  --accent-foreground: #17201e;
+  --destructive: #a8291f;
+  --destructive-foreground: #ffffff;
+  --destructive-soft: #f7e5e0;
+  --success: #0b6b60;
+  --success-foreground: #ffffff;
+  --success-soft: #e5efec;
+  --warning: #a97316;
+  --warning-foreground: #17201e;
+  --warning-strong: #7a5210;
+  --warning-soft: #f5ead2;
+  --border: #e3ded2;
+  --input: #8a8478;
+  --ring: #0b6b60;
+  --brand: #0b6b60;
+  --brand-soft: #e5efec;
+  --brand-strong: #084c45;
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.985 0 0);
+  --success: oklch(0.7 0.15 149);
+  --success-foreground: oklch(0.205 0 0);
+  --warning: oklch(0.8 0.15 75);
+  --warning-foreground: oklch(0.205 0 0);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 18%);
+  --ring: oklch(0.556 0 0);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-soft: var(--destructive-soft);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-strong: var(--warning-strong);
+  --color-warning-soft: var(--warning-soft);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-strong: var(--brand-strong);
+
+  /* Controles a 10px; superficies (`lg`) a 14px. */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 8px);
+
+  /* Servidas desde el propio sitio (`@fontsource-variable`, importadas en `main.tsx`), con
+     `font-display: swap`: el texto aparece con la del sistema y cambia al llegar. La landing del
+     QR no las usa (ver `landing-shell.tsx`): ahí cada milisegundo cuenta. */
+  --font-sans:
+    'Inter Tight Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+  /* Títulos, citas de clientes y cifras grandes. */
+  --font-display: 'Newsreader Variable', Georgia, 'Times New Roman', serif;
+  --font-system:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  /*
+   * Un único indicador de foco para todo lo interactivo: contorno sólido de 2px separado 2px del
+   * elemento. La separación importa: pegado a un botón casi negro el anillo no llegaba a 3:1;
+   * así contrasta contra el fondo de la página (7.4:1 sobre blanco). Solo con teclado
+   * (`:focus-visible`), no al hacer clic.
+   */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    /* El lugar de la barra de scroll queda reservado aunque la página no tenga: sin esto, al pasar
+       de una sección larga a una corta, lo fijo a la derecha (la firma de Opinara) y lo centrado
+       saltan los ~15px de la barra. En el teléfono la barra no ocupa lugar y esto no cambia nada. */
+    scrollbar-gutter: stable;
+    /* Que lo enfocado con el teclado no quede tapado por la barra de arriba (sticky, 56px)
+       ni, debajo de `lg`, por la de navegación de abajo (fija, 56px + área segura). */
+    scroll-padding-top: 4.5rem;
+    scroll-padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+
+    @variant lg {
+      scroll-padding-bottom: 1rem;
+    }
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    /* Cifras alineadas en columnas (contadores, fechas, paginación) sin pedirlo en cada lugar. */
+    font-variant-numeric: tabular-nums;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  /* Respeta a quien pidió menos movimiento en el sistema. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/**
+ * Transición entre pantallas (View Transitions). Todo enlace interno lleva `viewTransition`
+ * (y todo `navigate()`, `{ viewTransition: true }`): si falta, ese cambio vuelve a ser de golpe.
+ * Las pantallas fuera del dashboard (modo foco, login) no nombran capas: entran con el fundido
+ * corto de `root`.
+ *
+ * Solo se mueve el contenido (`main`, con el nombre `page`): sale apagándose rápido y entra
+ * subiendo unos píxeles. Las barras (`chrome` arriba o al costado, `tabbar` abajo en el teléfono)
+ * son capas propias por encima: no se mueven y su fundido solo suaviza la marca de la sección
+ * activa.
+ * Sin movimiento si el sistema lo pide; en navegadores sin soporte, el cambio es directo.
+ */
+::view-transition-group(root),
+::view-transition-old(root),
+::view-transition-new(root),
+::view-transition-old(chrome),
+::view-transition-new(chrome),
+::view-transition-old(tabbar),
+::view-transition-new(tabbar) {
+  animation-duration: 150ms;
+}
+
+/* La barra de arriba (o la lateral) y la de abajo no se mueven: van encima del contenido. */
+::view-transition-group(chrome),
+::view-transition-group(tabbar) {
+  z-index: 1;
+}
+
+/* La firma de Opinara es igual antes y después: se queda donde está, sin fundido, encima de todo. */
+::view-transition-group(signature) {
+  z-index: 2;
+  animation: none;
+}
+
+::view-transition-old(signature) {
+  display: none;
+}
+
+::view-transition-new(signature) {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(page) {
+    animation: page-out 120ms ease-in both;
+  }
+
+  ::view-transition-new(page) {
+    animation: page-in 240ms cubic-bezier(0.2, 0.7, 0.2, 1) 60ms both;
+  }
+
+  /* El contenido nuevo puede ser más alto o más bajo: que no se estire entre uno y otro. */
+  ::view-transition-group(page) {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
+@keyframes page-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/**
+ * Impresión del QR.
+ *
+ * El QR es el entregable físico del producto: cuando el usuario imprime, tiene que salir la hoja
+ * del QR sola, sin la barra de navegación ni los botones. Se usa `visibility` y no `display`
+ * para no recalcular el layout de la hoja (con `display:none` el contenedor pierde su lugar).
+ */
+@media print {
+  /* A4 vertical, explícito: la hoja (QR de 110mm, ver `qr-sheet.tsx`) está medida para este papel. */
+  @page {
+    size: A4 portrait;
+    margin: 15mm;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .hoja-qr,
+  .hoja-qr * {
+    visibility: visible !important;
+  }
+
+  .hoja-qr {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    border: 0 !important;
+    box-shadow: none !important;
+    background: white !important;
+    color: black !important;
+  }
+
+  .no-imprimir {
+    display: none !important;
+  }
+}

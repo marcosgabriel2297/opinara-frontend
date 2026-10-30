@@ -1,0 +1,33 @@
+node_modules
+dist
+dist-ssr
+coverage
+*.local
+
+.yarn/*
+!.yarn/patches
+!.yarn/releases
+!.yarn/plugins
+!.yarn/versions
+.pnp.*
+
+.env
+.env.*
+!.env.example
+!.env.production
+
+.DS_Store
+*.log
+
+/playwright-report
+/test-results
+
+# Material local: capturas de Playwright y configuración de Claude Code
+.playwright-mcp/
+.claude/
+
+# Documentos internos y material promocional: no se publican (el repo es público)
+FUNCIONALIDADES.md
+METRICAS.md
+PROMPT-FRONTEND.md
+brag-output/

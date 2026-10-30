@@ -1,0 +1,12 @@
+// Deploy en Cloudflare Workers como sitio estático (igual que la landing): publica `dist/` tal cual.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "opinara-frontend",
+  "compatibility_date": "2026-06-01",
+  "assets": {
+    "directory": "./dist",
+    // Es una SPA: cualquier ruta que no sea un archivo (`/reviews`, `/r/...`) sirve `index.html`
+    // y la resuelve React Router, incluida la página de "no encontrado".
+    "not_found_handling": "single-page-application"
+  }
+}
