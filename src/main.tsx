@@ -8,6 +8,7 @@ import '@fontsource-variable/newsreader/opsz-italic.css';
 import { App } from './app/app';
 import { isDemo } from './lib/demo';
 import { session } from './lib/http';
+import { watchStaleChunks } from './lib/stale-chunks';
 import './styles/index.css';
 
 /**
@@ -31,6 +32,7 @@ async function enableBrowserMocks(): Promise<void> {
 }
 
 async function bootstrap(): Promise<void> {
+  watchStaleChunks();
   await enableBrowserMocks();
 
   const container = document.getElementById('root');

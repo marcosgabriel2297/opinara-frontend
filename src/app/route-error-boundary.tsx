@@ -1,14 +1,26 @@
+import { useEffect, useState } from 'react';
 import { isRouteErrorResponse, Link, useRouteError } from 'react-router';
+
+import { FullPageLoader } from '@/components/full-page-loader';
 
 import { Button } from '@/components/ui/button';
 import { errorMessage, t } from '@/i18n';
 import { isApiError } from '@/lib/http';
+import { reloadForStaleChunk, shouldReloadForStaleChunk } from '@/lib/stale-chunks';
 
 import { paths } from './paths';
 
 /** Última red de contención: cualquier error no manejado de una ruta cae acá. */
 export function RouteErrorBoundary() {
   const error = useRouteError();
+  // Un deploy dejó viejos los chunks de esta pestaña: se recarga ya parado en la ruta de destino.
+  const [staleChunk] = useState(shouldReloadForStaleChunk);
+
+  useEffect(() => {
+    if (staleChunk) reloadForStaleChunk();
+  }, [staleChunk]);
+
+  if (staleChunk) return <FullPageLoader />;
 
   if (isRouteErrorResponse(error) && error.status === 404) {
     return <Shell title={t.errors.routeNotFoundTitle} body={t.errors.routeNotFoundBody} />;

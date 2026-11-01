@@ -13,4 +13,8 @@ export const browser = {
   replaceWith(url: string): void {
     window.location.replace(url);
   },
+  /** Vuelve a cargar la página: se usa cuando un deploy dejó obsoletos los chunks de esta pestaña. */
+  reload(): void {
+    window.location.reload();
+  },
 };
