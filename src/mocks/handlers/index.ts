@@ -2,6 +2,7 @@ import { authHandlers } from './auth';
 import { businessHandlers } from './businesses';
 import { campaignHandlers } from './campaigns';
 import { googleHandlers } from './google';
+import { loyaltyHandlers } from './loyalty';
 import { reviewHandlers } from './reviews';
 import { teamHandlers } from './team';
 
@@ -10,6 +11,7 @@ export const handlers = [
   ...businessHandlers,
   ...campaignHandlers,
   ...googleHandlers,
+  ...loyaltyHandlers,
   ...reviewHandlers,
   ...teamHandlers,
 ];

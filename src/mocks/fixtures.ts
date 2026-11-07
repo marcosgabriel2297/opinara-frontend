@@ -1,6 +1,7 @@
 import { type Team } from '@/features/team/api/schemas';
 import { type Business } from '@/features/businesses/api/schemas';
 import { type Campaign } from '@/features/campaigns/api/schemas';
+import { type LoyaltyMember, type LoyaltyProgram } from '@/features/loyalty/api/schemas';
 import { type Review } from '@/features/reviews/api/schemas';
 
 /** Datos con la misma forma que devuelve el backend sembrado (`yarn seed`). */
@@ -23,6 +24,7 @@ export const mockBusiness: Business = {
   createdAt: '2026-01-05T12:00:00.000Z',
   logoUpdatedAt: null,
   role: 'OWNER',
+  features: ['LOYALTY'],
 };
 
 export const mockTokens = {
@@ -209,3 +211,56 @@ export const mockTeam: Team = {
 /** Los links de los mails de prueba (recuperar contraseña, invitación). */
 export const mockResetToken = 'token-de-recuperacion-de-prueba-0123456789';
 export const mockInvitationToken = 'token-de-invitacion-de-prueba-0123456789';
+
+/** La tarjeta de sellos de la sucursal Centro. */
+export const mockLoyaltyProgram: LoyaltyProgram = {
+  urn: 'urn:loyalty-program:centro',
+  location: { urn: mockImportedLocation.urn, title: mockImportedLocation.title, isActive: true },
+  slug: 'centro',
+  status: 'ACTIVE',
+  stampsRequired: 5,
+  rewardDescription: 'Un café gratis',
+  terms: 'No acumulable con otras promociones.',
+  stampCooldownMinutes: 10,
+  stats: { members: 2, stamps: 8, redemptions: 1 },
+  signupUrl: 'http://localhost:5173/f/cafe-de-la-esquina/centro',
+  createdAt: '2026-11-01T12:00:00.000Z',
+};
+
+/** Clientes de la tarjeta: Ana a mitad de camino y Bruno con el premio listo. Con su token, para `/card`. */
+export const mockLoyaltyMembers: (LoyaltyMember & { cardToken: string })[] = [
+  {
+    urn: 'urn:loyalty-member:ana',
+    memberCode: 'K3F9QX',
+    programUrn: mockLoyaltyProgram.urn,
+    name: 'Ana',
+    phone: '+5491123456789',
+    email: 'ana@mail.test',
+    stamps: 3,
+    stampsRequired: 5,
+    rewardAvailable: false,
+    totalStamps: 3,
+    totalRedemptions: 0,
+    lastStampAt: null,
+    marketing: true,
+    createdAt: '2026-11-02T12:00:00.000Z',
+    cardToken: 'token-de-la-tarjeta-de-ana-0123456789abcdef',
+  },
+  {
+    urn: 'urn:loyalty-member:bruno',
+    memberCode: 'B7N2WZ',
+    programUrn: mockLoyaltyProgram.urn,
+    name: 'Bruno',
+    phone: '+5491155550000',
+    email: null,
+    stamps: 5,
+    stampsRequired: 5,
+    rewardAvailable: true,
+    totalStamps: 10,
+    totalRedemptions: 1,
+    lastStampAt: null,
+    marketing: false,
+    createdAt: '2026-11-03T12:00:00.000Z',
+    cardToken: 'token-de-la-tarjeta-de-bruno-0123456789abcd',
+  },
+];

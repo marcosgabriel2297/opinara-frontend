@@ -32,6 +32,11 @@ export const routePatterns = {
   review: '/reviews/:locationUrn/:reviewUrn',
   campaigns: '/campaigns',
   campaign: '/campaigns/:campaignUrn',
+  /** Tarjeta de sellos: los programas por sucursal. */
+  loyalty: '/loyalty',
+  loyaltyProgram: '/loyalty/programs/:programUrn',
+  /** La caja: pantalla completa, sin la navegación. */
+  loyaltyRegister: '/loyalty/register',
   settings: '/settings',
   /** Alta manual de una sucursal, con su Place ID. */
   newLocation: '/settings/locations/new',
@@ -46,6 +51,10 @@ export const routePatterns = {
   publicUnavailable: '/r/unavailable',
   /** Adonde redirige hoy el backend (lo tiene escrito en su código): alias permanente. */
   publicUnavailableLegacy: '/r/no-disponible',
+  /** Lo que codifica el QR de alta de la tarjeta de sellos (lo arma el backend). Va impreso: no se toca. */
+  loyaltySignup: '/f/:businessSlug/:programSlug',
+  /** La tarjeta del cliente. El token va después de `#` (`/card#token=…`), lo manda el backend en el mail. */
+  loyaltyCard: '/card',
 } as const;
 
 /** Query params de los filtros de reseñas. */
@@ -78,6 +87,10 @@ export const paths = {
   review: (locationUrn: string, reviewUrn: string) => `/reviews/${enc(locationUrn)}/${enc(reviewUrn)}`,
   campaigns: routePatterns.campaigns,
   campaign: (campaignUrn: string) => `/campaigns/${enc(campaignUrn)}`,
+  loyalty: routePatterns.loyalty,
+  loyaltyProgram: (programUrn: string) => `/loyalty/programs/${enc(programUrn)}`,
+  loyaltyRegister: routePatterns.loyaltyRegister,
+  loyaltyCard: routePatterns.loyaltyCard,
   settings: routePatterns.settings,
   newLocation: routePatterns.newLocation,
   google: routePatterns.google,

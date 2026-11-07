@@ -75,6 +75,24 @@ export const errorMessages: Record<string, string> = {
   CAMPAIGN_SLUG_ALREADY_EXISTS: 'Ya tenés una campaña con ese identificador.',
   CAMPAIGN_INACTIVE: 'La campaña no está activa.',
 
+  // Planes
+  PLAN_FEATURE_NOT_INCLUDED: 'Tu plan no incluye esto. Escribinos para cambiarlo.',
+
+  // Tarjeta de sellos
+  LOYALTY_PROGRAM_NOT_FOUND: 'Este programa de sellos no está disponible.',
+  LOYALTY_PROGRAM_PAUSED: 'El programa de esta sucursal está pausado: no suma sellos ni canjea premios.',
+  LOYALTY_PROGRAM_ALREADY_EXISTS: 'Esa sucursal ya tiene su tarjeta de sellos.',
+  LOYALTY_PROGRAM_SLUG_ALREADY_EXISTS: 'Ya tenés un programa con ese identificador.',
+  LOYALTY_MEMBER_NOT_FOUND: 'No encontramos esa tarjeta.',
+  LOYALTY_CARD_NOT_FOUND: 'Esta tarjeta ya no existe o el link no es válido.',
+  LOYALTY_ALREADY_REGISTERED:
+    'Ya tenés una tarjeta con ese celular. Si dejaste tu email, te mandamos el link; si no, pedilo en la caja.',
+  LOYALTY_INVALID_PHONE: 'Revisá el celular: escribilo con el código de área, por ejemplo 11 2345-6789.',
+  LOYALTY_WRONG_LOCATION: 'Esta tarjeta es de otra sucursal: no suma sellos acá.',
+  LOYALTY_STAMP_COOLDOWN: 'Esta tarjeta recibió un sello hace un momento. Esperá unos minutos para sumar otro.',
+  LOYALTY_NOT_ENOUGH_STAMPS: 'Todavía no tiene los sellos para el premio.',
+  LOYALTY_UNDO_NOT_ALLOWED: 'Ya no se puede deshacer: pasó el tiempo o hubo otra acción después.',
+
   // Del cliente
   [ClientErrorCodes.NETWORK_ERROR]: 'No pudimos conectarnos. Revisá tu conexión e intentá de nuevo.',
   [ClientErrorCodes.INVALID_RESPONSE]: 'Recibimos una respuesta inesperada del servidor.',

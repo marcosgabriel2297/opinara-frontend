@@ -13,6 +13,8 @@ export interface RequestOptions {
   query?: QueryParams;
   /** `false` para endpoints publicos: no adjunta token ni intenta refrescar ante 401. */
   auth?: boolean;
+  /** Headers propios del endpoint (por ejemplo, el token de la tarjeta de sellos). */
+  headers?: Record<string, string>;
   signal?: AbortSignal;
 }
 
@@ -81,7 +83,7 @@ async function execute<TSchema extends z.ZodType>(
   path: string,
   options: ExecuteOptions<TSchema>,
 ): Promise<z.output<TSchema>> {
-  const headers = new Headers({ Accept: 'application/json' });
+  const headers = new Headers({ ...options.headers, Accept: 'application/json' });
 
   // Un `Blob` (una imagen) viaja crudo con su propio tipo; el resto, como JSON. Se mandan sus
   // bytes y no el `Blob`: así anda con cualquier `fetch`, también el de los tests.
@@ -177,6 +179,9 @@ export const api = {
 
   post: <TSchema extends z.ZodType>(path: string, options: Omit<RequestOptions, 'method'> & { schema: TSchema }) =>
     request(path, { ...options, method: 'POST' }),
+
+  patch: <TSchema extends z.ZodType>(path: string, options: Omit<RequestOptions, 'method'> & { schema: TSchema }) =>
+    request(path, { ...options, method: 'PATCH' }),
 
   put: <TSchema extends z.ZodType>(path: string, options: Omit<RequestOptions, 'method'> & { schema: TSchema }) =>
     request(path, { ...options, method: 'PUT' }),

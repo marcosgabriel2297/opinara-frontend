@@ -1,4 +1,4 @@
-import { MessageSquareIcon, QrCodeIcon, SettingsIcon, SunIcon } from 'lucide-react';
+import { MessageSquareIcon, QrCodeIcon, SettingsIcon, StampIcon, SunIcon } from 'lucide-react';
 import { NavLink, Outlet, ScrollRestoration } from 'react-router';
 
 import { Wordmark } from '@/components/brand-mark';
@@ -18,6 +18,8 @@ const navItems = [
   { to: paths.home, label: t.nav.home, icon: SunIcon, end: true },
   { to: paths.reviews, label: t.nav.reviews, icon: MessageSquareIcon, end: false, pending: true },
   { to: paths.campaigns, label: t.nav.campaigns, icon: QrCodeIcon, end: false },
+  // Visible aunque el plan no la incluya: la sección explica qué es y cómo sumarla.
+  { to: paths.loyalty, label: t.nav.loyalty, icon: StampIcon, end: false },
   { to: paths.settings, label: t.nav.settings, icon: SettingsIcon, end: false, last: true },
 ];
 
@@ -61,7 +63,7 @@ export function DashboardLayout() {
         <nav
           aria-label={t.nav.sections}
           className={cn(
-            'no-imprimir bg-card fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 border-t pb-[env(safe-area-inset-bottom)] [view-transition-name:tabbar]',
+            'no-imprimir bg-card fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t pb-[env(safe-area-inset-bottom)] [view-transition-name:tabbar]',
             'lg:static lg:flex lg:flex-1 lg:flex-col lg:gap-0.5 lg:border-0 lg:bg-transparent lg:pb-0',
           )}
         >

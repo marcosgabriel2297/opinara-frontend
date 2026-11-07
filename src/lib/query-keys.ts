@@ -40,6 +40,24 @@ export const queryKeys = {
   scans: (businessUrn: string, campaignUrn: string | null, weeks: number) =>
     ['businesses', businessUrn, 'scans', campaignUrn ?? '*', weeks] as const,
 
+  /** Tarjeta de sellos. Todo bajo `loyalty`: un sello o un canje invalidan programas y clientes de una. */
+  loyalty: (businessUrn: string) => ['businesses', businessUrn, 'loyalty'] as const,
+  loyaltyPrograms: (businessUrn: string) => ['businesses', businessUrn, 'loyalty', 'programs'] as const,
+  loyaltyProgram: (businessUrn: string, programUrn: string) =>
+    ['businesses', businessUrn, 'loyalty', 'programs', programUrn] as const,
+  loyaltyMembers: (businessUrn: string, programUrn: string, filters: Record<string, unknown>) =>
+    ['businesses', businessUrn, 'loyalty', 'members', programUrn, filters] as const,
+  loyaltyMember: (businessUrn: string, memberCode: string) =>
+    ['businesses', businessUrn, 'loyalty', 'member', memberCode] as const,
+  /** Fuera de `loyalty`, como el de campañas: un sello no cambia el QR impreso. */
+  loyaltyProgramQr: (businessUrn: string, programUrn: string) =>
+    ['businesses', businessUrn, 'loyalty-qr', programUrn] as const,
+
+  /** Lo público, sin negocio ni sesión. */
+  loyaltySignup: (businessSlug: string, programSlug: string) =>
+    ['public', 'loyalty', businessSlug, programSlug] as const,
+  loyaltyCard: (token: string) => ['public', 'loyalty', 'card', token] as const,
+
   /** Raíz de todas las reseñas del negocio: sirve para invalidar de una. */
   allReviews: (businessUrn: string) => ['businesses', businessUrn, 'locations'] as const,
 };
