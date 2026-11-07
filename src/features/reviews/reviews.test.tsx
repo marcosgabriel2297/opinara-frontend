@@ -3,7 +3,7 @@ import { http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { API_BASE_URL, session } from '@/lib/http';
-import { apiErrorBody, mockBusiness, mockImportedLocation, mockReviews } from '@/mocks/fixtures';
+import { apiErrorBody, mockImportedLocation, mockReviews } from '@/mocks/fixtures';
 import { server } from '@/mocks/server';
 import { givenMock } from '@/mocks/state';
 import { renderApp, signIn } from '@/test/render';
@@ -130,6 +130,47 @@ describe('filtros', () => {
     renderApp([LISTA]);
 
     expect(await screen.findByText('Todavía no hay reseñas')).toBeInTheDocument();
+  });
+
+  // Sin la API de Google aprobada no entra ninguna reseña: responder en Google es la única salida.
+  it('sin reseñas ofrece responder en Google, con las reseñas de la sucursal', async () => {
+    givenMock.reviews([]);
+    renderApp([LISTA]);
+
+    await screen.findByText('Todavía no hay reseñas');
+    const links = screen.getAllByRole('link', { name: /Responder en Google/ });
+    // Una sola vez: en el estado vacío, no repetido al costado.
+    expect(links).toHaveLength(1);
+    expect(links[0]).toHaveAttribute('href', 'https://search.google.com/local/reviews?placeid=ChIJ18273645ficticio');
+    expect(links[0]).toHaveAttribute('target', '_blank');
+    expect(links[0]).toHaveAccessibleName(/se abre en otra pestaña/);
+  });
+
+  it('con reseñas, "Responder en Google" queda al costado', async () => {
+    renderApp([LISTA]);
+
+    await screen.findByText('Excelente atención y el café es el mejor del barrio.');
+    expect(screen.getByRole('link', { name: /Responder en Google/ })).toHaveAttribute(
+      'href',
+      'https://search.google.com/local/reviews?placeid=ChIJ18273645ficticio',
+    );
+  });
+
+  // El backend sincroniza solo: no hay botón, solo el aviso de que están al día.
+  it('no ofrece sincronizar a mano: avisa que se actualizan solas', async () => {
+    renderApp([LISTA]);
+
+    await screen.findByText('Excelente atención y el café es el mejor del barrio.');
+    expect(screen.queryByRole('button', { name: /Sincronizar/ })).not.toBeInTheDocument();
+    expect(screen.getByText(/Se actualizan solas con Google/)).toBeInTheDocument();
+  });
+
+  it('sin reseñas, avisa que se actualizan solas también en el estado vacío', async () => {
+    givenMock.reviews([]);
+    renderApp([LISTA]);
+
+    await screen.findByText('Todavía no hay reseñas');
+    expect(screen.getByText(/Se actualizan solas con Google/)).toBeInTheDocument();
   });
 
   it('sin sucursales importadas lleva a conectar Google', async () => {
@@ -617,58 +658,6 @@ describe('borradores', () => {
     await router.navigate(detalle('urn:review:aaaa1111'));
     await screen.findByLabelText('Texto de la respuesta');
     expect(screen.queryByText('Recuperamos lo que habías escrito y no publicaste.')).not.toBeInTheDocument();
-  });
-});
-
-describe('sincronizar', () => {
-  it('avisa cuando salió todo bien', async () => {
-    const { user } = renderApp([LISTA]);
-
-    await user.click(await screen.findByRole('button', { name: 'Sincronizar con Google' }));
-
-    expect(await screen.findByText('Listo: sincronizamos la sucursal.')).toBeInTheDocument();
-    expect(screen.getByText('3 nuevas, 1 actualizada.')).toBeInTheDocument();
-  });
-
-  it('con éxito parcial muestra las dos cosas: lo que anduvo y lo que falló', async () => {
-    givenMock.syncOutcome('partial');
-    const { user } = renderApp([LISTA]);
-
-    await user.click(await screen.findByRole('button', { name: 'Sincronizar con Google' }));
-
-    const panel = await screen.findByRole('status');
-    expect(panel).toHaveTextContent('Sincronizamos 1 de 2 sucursales. 1 falló.');
-    expect(panel).toHaveTextContent('3 nuevas, 1 actualizada.');
-    // Y el motivo de la que falló, traducido por errorCode.
-    expect(panel).toHaveTextContent('Google está limitando los pedidos. Reintentá en un rato.');
-  });
-
-  it('si fallaron todas no dice que sincronizó', async () => {
-    givenMock.syncOutcome('allFailed');
-    const { user } = renderApp([LISTA]);
-
-    await user.click(await screen.findByRole('button', { name: 'Sincronizar con Google' }));
-
-    const panel = await screen.findByRole('status');
-    expect(panel).toHaveTextContent('No pudimos sincronizar ninguna de las 2 sucursales.');
-    expect(panel).not.toHaveTextContent('nuevas');
-  });
-
-  it('avisa si quedaron reseñas sin traer', async () => {
-    givenMock.syncOutcome('truncated');
-    const { user } = renderApp([LISTA]);
-
-    await user.click(await screen.findByRole('button', { name: 'Sincronizar con Google' }));
-
-    expect(await screen.findByText(/Quedaron reseñas sin traer/)).toBeInTheDocument();
-  });
-
-  it('a un MEMBER no le ofrece sincronizar', async () => {
-    givenMock.businesses([{ ...mockBusiness, role: 'MEMBER' }]);
-    renderApp([LISTA]);
-
-    await screen.findByRole('heading', { name: 'Reseñas' });
-    expect(screen.queryByRole('button', { name: 'Sincronizar con Google' })).not.toBeInTheDocument();
   });
 });
 

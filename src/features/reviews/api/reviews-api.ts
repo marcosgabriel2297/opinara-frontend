@@ -5,11 +5,9 @@ import {
   replySuggestionSchema,
   reviewSchema,
   reviewsSummarySchema,
-  syncReportSchema,
   type PaginatedReviews,
   type Review,
   type ReviewsSummary,
-  type SyncReport,
 } from './schemas';
 
 const reviewsBase = (businessUrn: string, locationUrn: string) =>
@@ -94,9 +92,4 @@ export function replyToReview(
 
 export function deleteReply(businessUrn: string, locationUrn: string, reviewUrn: string): Promise<void> {
   return api.delete(`${reviewsBase(businessUrn, locationUrn)}/${encodeURIComponent(reviewUrn)}/reply`);
-}
-
-/** Sincroniza todas las sucursales del negocio. Requiere OWNER o ADMIN. */
-export function syncBusiness(businessUrn: string): Promise<SyncReport> {
-  return api.post(`/businesses/${encodeURIComponent(businessUrn)}/google/sync`, { schema: syncReportSchema });
 }

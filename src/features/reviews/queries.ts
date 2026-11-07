@@ -76,15 +76,6 @@ export function useDeleteReply(businessUrn: string, locationUrn: string, reviewU
   });
 }
 
-export function useSyncBusiness(businessUrn: string) {
-  const invalidate = useInvalidateReviews(businessUrn);
-
-  return useMutation({
-    mutationFn: () => reviewsApi.syncBusiness(businessUrn),
-    onSuccess: invalidate,
-  });
-}
-
 export function useReviewsSummary(businessUrn: string) {
   return useQuery({
     queryKey: queryKeys.reviewsSummary(businessUrn),

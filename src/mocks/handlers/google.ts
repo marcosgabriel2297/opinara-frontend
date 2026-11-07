@@ -132,6 +132,8 @@ export const googleHandlers = [
           source: 'GOOGLE',
           title: google?.title ?? mockImportedLocation.title,
           ...(google?.address === undefined ? {} : { address: google.address }),
+          // El backend real lo devuelve: "Responder en Google" se arma con esto.
+          ...(google === undefined || !('placeId' in google) ? {} : { placeId: google.placeId }),
           hasVoiceOfMerchant: true,
           isActive: !mockState.inactiveLocations.has(urn),
           createdAt: '2026-06-16T02:26:10.637Z',

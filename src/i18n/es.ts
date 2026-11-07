@@ -378,22 +378,15 @@ export const t = {
       noResults: 'Ninguna reseña coincide con esos filtros',
       noResultsBody: 'Probá con otra calificación o sacá el filtro de respuestas.',
     },
-    sync: {
-      action: 'Sincronizar con Google',
-      syncing: 'Sincronizando…',
-      ownerOnly: 'Solo el dueño o un administrador pueden sincronizar.',
-      allOk: { one: 'Listo: sincronizamos la sucursal.', other: 'Listo: sincronizamos las {count} sucursales.' },
-      // Con éxito parcial siempre hay al menos dos sucursales: una anduvo y otra no.
-      partial: 'Sincronizamos {succeeded} de {locations} sucursales.',
-      failed: { one: '1 falló.', other: '{count} fallaron.' },
-      noneOk: {
-        one: 'No pudimos sincronizar la sucursal.',
-        other: 'No pudimos sincronizar ninguna de las {count} sucursales.',
-      },
-      importedCount: { one: '1 nueva', other: '{count} nuevas' },
-      updatedCount: { one: '1 actualizada', other: '{count} actualizadas' },
-      truncated: 'Quedaron reseñas sin traer por el tamaño del historial. Volvé a sincronizar para seguir.',
-      failureTitle: 'Sucursales que fallaron',
+    replyOnGoogle: {
+      action: 'Responder en Google',
+      newTab: ', se abre en otra pestaña',
+      hint: 'Se abren las reseñas de tu local. Entrá con la cuenta que administra el perfil para ver "Responder".',
+    },
+    freshness: {
+      auto: 'Se actualizan solas con Google, cada 15 minutos.',
+      lastSync: 'Última actualización: {date}.',
+      firstSync: 'Las primeras pueden tardar unos minutos en aparecer.',
     },
   },
 

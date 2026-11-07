@@ -16,9 +16,10 @@ import { plural, t } from '@/i18n';
 import { DEFAULT_PAGE_SIZE } from '../api/schemas';
 import { ReviewCard } from '../components/review-card';
 import { ReviewFilters } from '../components/review-filters';
+import { ReplyOnGoogleLink } from '../components/reply-on-google-link';
 import { ReviewListSkeleton } from '../components/review-list-skeleton';
 import { reviewListState } from '../list-return';
-import { SyncButton } from '../components/sync-button';
+import { ReviewsFreshness } from '../components/reviews-freshness';
 import { useReviews, useReviewsSummary, useUnansweredCount } from '../queries';
 import { useReviewSearchState } from '../use-review-search-state';
 
@@ -41,6 +42,7 @@ export default function ReviewsRoute() {
   }, [state.locationUrn, state.page, firstLocationUrn, update]);
 
   const selectedUrn = state.locationUrn ?? firstLocationUrn ?? null;
+  const selectedLocation = locations.find((candidate) => candidate.urn === selectedUrn);
 
   const reviewsQuery = useReviews(business.urn, selectedUrn, {
     page: state.page,
@@ -119,7 +121,9 @@ export default function ReviewsRoute() {
             onChange={update}
             onClear={clear}
           />
-          <SyncButton business={business} locations={locations} />
+          <ReviewsFreshness location={selectedLocation} />
+          {/* Sin reseñas, el mismo link ya está en el estado vacío como acción principal. */}
+          {page?.items.length !== 0 && <ReplyOnGoogleLink location={selectedLocation} />}
         </aside>
 
         <div className="grid min-w-0 gap-4">
@@ -139,7 +143,14 @@ export default function ReviewsRoute() {
                   <Button variant="outline" onClick={clear}>
                     {t.reviews.filters.clear}
                   </Button>
-                ) : undefined
+                ) : (
+                  // Sin la API de Google aprobada nunca hay reseñas acá: que puedan responder igual.
+                  <ReplyOnGoogleLink
+                    location={selectedLocation}
+                    variant="default"
+                    className="justify-items-center text-center"
+                  />
+                )
               }
             />
           )}

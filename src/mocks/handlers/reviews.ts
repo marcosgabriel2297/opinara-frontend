@@ -2,7 +2,7 @@ import { http, HttpResponse } from 'msw';
 
 import { API_BASE_URL } from '@/lib/http';
 
-import { apiErrorBody, mockImportedLocation, mockSuggestion } from '../fixtures';
+import { apiErrorBody, mockSuggestion } from '../fixtures';
 import { mockState } from '../state';
 
 const reviewsBase = `${API_BASE_URL}/businesses/:businessUrn/locations/:locationUrn/reviews`;
@@ -144,65 +144,5 @@ export const reviewHandlers = [
     delete review.reply;
 
     return new HttpResponse(null, { status: 204 });
-  }),
-
-  /**
-   * Sincronización del negocio. Devuelve **200 incluso con `failed > 0`**: es el caso que la UI
-   * tiene que saber mostrar, así que el mock lo puede provocar a pedido.
-   */
-  http.post(`${API_BASE_URL}/businesses/:businessUrn/google/sync`, () => {
-    const result = (locationUrn: string, truncated = false) => ({
-      locationUrn,
-      imported: 3,
-      updated: 1,
-      unchanged: 5,
-      deleted: 0,
-      pages: 2,
-      full: false,
-      truncated,
-      startedAt: '2026-09-14T03:00:00.000Z',
-      finishedAt: '2026-09-14T03:00:12.000Z',
-    });
-
-    switch (mockState.syncOutcome) {
-      case 'partial':
-        return HttpResponse.json({
-          locations: 2,
-          succeeded: 1,
-          failed: 1,
-          results: [result(mockImportedLocation.urn)],
-          failures: [{ locationUrn: 'urn:location:222', errorCode: 'GOOGLE_RATE_LIMITED' }],
-        });
-
-      case 'allFailed':
-        return HttpResponse.json({
-          locations: 2,
-          succeeded: 0,
-          failed: 2,
-          results: [],
-          failures: [
-            { locationUrn: mockImportedLocation.urn, errorCode: 'GOOGLE_PERMISSION_DENIED' },
-            { locationUrn: 'urn:location:222', errorCode: 'GOOGLE_UNAVAILABLE' },
-          ],
-        });
-
-      case 'truncated':
-        return HttpResponse.json({
-          locations: 1,
-          succeeded: 1,
-          failed: 0,
-          results: [result(mockImportedLocation.urn, true)],
-          failures: [],
-        });
-
-      default:
-        return HttpResponse.json({
-          locations: 1,
-          succeeded: 1,
-          failed: 0,
-          results: [result(mockImportedLocation.urn)],
-          failures: [],
-        });
-    }
   }),
 ];

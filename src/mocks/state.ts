@@ -27,8 +27,6 @@ interface MockState {
   locationsWithoutReviewUrl: Set<string>;
   /** Sucursales importadas pero desactivadas (`isActive: false`). */
   inactiveLocations: Set<string>;
-  /** Qué devuelve el próximo `POST /google/sync`. */
-  syncOutcome: 'ok' | 'partial' | 'allFailed' | 'truncated';
   /** Respuestas sugeridas: disponibles, sin credenciales en el servidor, o fallando. */
   replySuggestions: 'ok' | 'unavailable' | 'failed';
   /** Escaneos de las últimas semanas (de la más vieja a la actual), para los gráficos. */
@@ -58,7 +56,6 @@ function createInitialState(): MockState {
     campaigns: mockCampaigns.map((campaign) => ({ ...campaign })),
     locationsWithoutReviewUrl: new Set<string>(),
     inactiveLocations: new Set<string>(),
-    syncOutcome: 'ok',
     replySuggestions: 'ok',
     scanWeeks: [...mockScanWeeks],
     logos: new Map(),
@@ -114,9 +111,6 @@ export const givenMock = {
   },
   reviews: (reviews: typeof mockReviews) => {
     mockState.reviews = reviews.map((review) => ({ ...review }));
-  },
-  syncOutcome: (outcome: MockState['syncOutcome']) => {
-    mockState.syncOutcome = outcome;
   },
   replySuggestions: (outcome: MockState['replySuggestions']) => {
     mockState.replySuggestions = outcome;

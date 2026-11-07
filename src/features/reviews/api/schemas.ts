@@ -38,35 +38,6 @@ export const paginatedReviewsSchema = z.object({
 
 export type PaginatedReviews = z.infer<typeof paginatedReviewsSchema>;
 
-/** Lo que devuelve sincronizar una sucursal. */
-export const syncResultSchema = z.object({
-  locationUrn: z.string(),
-  imported: z.number(),
-  updated: z.number(),
-  unchanged: z.number(),
-  deleted: z.number(),
-  pages: z.number(),
-  full: z.boolean(),
-  /** La corrida se cortó por el tope de páginas: quedaron reseñas sin traer. */
-  truncated: z.boolean(),
-  startedAt: z.string(),
-  finishedAt: z.string(),
-});
-
-/**
- * Sincronización de todo el negocio. Puede venir con `failed > 0` **y status 200**:
- * unas sucursales sincronizaron y otras no.
- */
-export const syncReportSchema = z.object({
-  locations: z.number(),
-  succeeded: z.number(),
-  failed: z.number(),
-  results: z.array(syncResultSchema),
-  failures: z.array(z.object({ locationUrn: z.string(), errorCode: z.string() })),
-});
-
-export type SyncReport = z.infer<typeof syncReportSchema>;
-
 const windowSchema = z.object({ count: z.number(), averageRating: z.number().nullable() });
 
 /** Las cifras del negocio entero (todas las sucursales), calculadas por el backend. */
