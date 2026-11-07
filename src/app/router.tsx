@@ -57,6 +57,20 @@ export const routes: RouteObject[] = [
     hydrateFallbackElement: <FullPageLoader />,
   },
   {
+    // Lo que codifica el QR de alta de la tarjeta de sellos: va impreso, no se cambia.
+    path: routePatterns.loyaltySignup,
+    lazy: async () => ({ Component: (await import('@/features/loyalty/routes/signup-route')).default }),
+    errorElement: <RouteErrorBoundary />,
+    hydrateFallbackElement: <FullPageLoader />,
+  },
+  {
+    // La tarjeta del cliente: pública, sin sesión de Opinara.
+    path: routePatterns.loyaltyCard,
+    lazy: async () => ({ Component: (await import('@/features/loyalty/routes/card-route')).default }),
+    errorElement: <RouteErrorBoundary />,
+    hydrateFallbackElement: <FullPageLoader />,
+  },
+  {
     // Con o sin sesión, y sin layout de la app: las lee Google y quien todavía no tiene cuenta.
     path: routePatterns.privacy,
     lazy: async () => ({ Component: (await import('@/features/legal/routes/privacy-route')).default }),
@@ -144,6 +158,13 @@ export const routes: RouteObject[] = [
                 }),
               },
               {
+                // La caja de la tarjeta de sellos, igual: pantalla completa para el mostrador.
+                path: routePatterns.loyaltyRegister,
+                lazy: async () => ({
+                  Component: (await import('@/features/loyalty/routes/register-route')).default,
+                }),
+              },
+              {
                 path: routePatterns.home,
                 element: <DashboardLayout />,
                 children: [
@@ -170,6 +191,18 @@ export const routes: RouteObject[] = [
                     path: routePatterns.campaign,
                     lazy: async () => ({
                       Component: (await import('@/features/campaigns/routes/campaign-detail-route')).default,
+                    }),
+                  },
+                  {
+                    path: routePatterns.loyalty,
+                    lazy: async () => ({
+                      Component: (await import('@/features/loyalty/routes/loyalty-route')).default,
+                    }),
+                  },
+                  {
+                    path: routePatterns.loyaltyProgram,
+                    lazy: async () => ({
+                      Component: (await import('@/features/loyalty/routes/program-route')).default,
                     }),
                   },
                   {

@@ -2362,6 +2362,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"jsqr@npm:1.4.0":
+  version: 1.4.0
+  resolution: "jsqr@npm:1.4.0"
+  checksum: 10c0/69fbfe4c866a04c97b377901a166544a583bfc76b838c275efa9af058d64e5612267079b1e96ea7b6434385803571b1c6a97a43c85f4373e8afa4f4034fc916c
+  languageName: node
+  linkType: hard
+
 "keyv@npm:^5.6.0":
   version: 5.6.0
   resolution: "keyv@npm:5.6.0"
@@ -2855,6 +2862,7 @@ __metadata:
     eslint-plugin-react-refresh: "npm:^0.5.6"
     globals: "npm:^17.12.0"
     jsdom: "npm:^30.0.1"
+    jsqr: "npm:1.4.0"
     lucide-react: "npm:^1.45.0"
     msw: "npm:^2.15.0"
     prettier: "npm:^3.9.6"

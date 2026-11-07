@@ -8,7 +8,10 @@ import {
   mockResetToken,
   mockScanWeeks,
   mockTeam,
+  mockLoyaltyMembers,
+  mockLoyaltyProgram,
 } from './fixtures';
+import { type LoyaltyEvent, type LoyaltyProgram } from '@/features/loyalty/api/schemas';
 import { type Location } from '@/features/locations/api/schemas';
 import { type InvitationLookup, type Team } from '@/features/team/api/schemas';
 
@@ -43,6 +46,12 @@ interface MockState {
   /** Refresh tokens que se revocaron con `/auth/logout`, y cuántas veces se cerró todo. */
   loggedOut: string[];
   loggedOutEverywhere: number;
+  /** Tarjeta de sellos: programas, clientes (con su token) y el historial para deshacer. */
+  loyalty: {
+    programs: LoyaltyProgram[];
+    members: (typeof mockLoyaltyMembers)[number][];
+    events: (LoyaltyEvent & { memberUrn: string; programUrn: string; undone: boolean })[];
+  };
 }
 
 /** Estado mutable de los mocks: deja que un test (o el browser) recorra un flujo completo. */
@@ -79,6 +88,11 @@ function createInitialState(): MockState {
     resetTokens: new Set([mockResetToken]),
     loggedOut: [],
     loggedOutEverywhere: 0,
+    loyalty: {
+      programs: [structuredClone(mockLoyaltyProgram)],
+      members: mockLoyaltyMembers.map((member) => ({ ...member })),
+      events: [],
+    },
   };
 }
 
@@ -132,5 +146,15 @@ export const givenMock = {
   },
   locationInactive: (locationUrn: string) => {
     mockState.inactiveLocations.add(locationUrn);
+  },
+  /** El negocio de prueba sin la tarjeta de sellos en su plan. */
+  withoutLoyalty: () => {
+    mockState.businesses = mockState.businesses.map((business) => ({ ...business, features: [] }));
+  },
+  loyaltyPrograms: (programs: LoyaltyProgram[]) => {
+    mockState.loyalty.programs = programs.map((program) => structuredClone(program));
+  },
+  loyaltyMembers: (members: (typeof mockLoyaltyMembers)[number][]) => {
+    mockState.loyalty.members = members.map((member) => ({ ...member }));
   },
 };
