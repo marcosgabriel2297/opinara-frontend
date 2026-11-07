@@ -20,6 +20,8 @@ interface QrActionsProps {
   logoUrl: string | null;
   branch: string | null;
   campaignSlug: string;
+  /** Los textos de la hoja A4 descargable; por defecto, los de una campaña de reseñas. */
+  copy?: { headline: string; subhead: string; fallback: string };
 }
 
 /**
@@ -35,6 +37,11 @@ export function QrActions({
   campaignSlug,
   format,
   onFormatChange,
+  copy = {
+    headline: t.campaigns.detail.printHeadline,
+    subhead: t.campaigns.detail.printSubhead,
+    fallback: t.campaigns.detail.printFallback,
+  },
 }: QrActionsProps) {
   const [state, setState] = useState<'idle' | 'working' | 'error'>('idle');
   const baseName = `qr-${businessSlug}-${campaignSlug}`;
@@ -54,9 +61,9 @@ export function QrActions({
     renderSheetPng({
       businessName,
       branch,
-      headline: t.campaigns.detail.printHeadline,
-      subhead: t.campaigns.detail.printSubhead,
-      fallback: `${t.campaigns.detail.printFallback} ${printableUrl(qr.targetUrl)}`,
+      headline: copy.headline,
+      subhead: copy.subhead,
+      fallback: `${copy.fallback} ${printableUrl(qr.targetUrl)}`,
       qrPngDataUrl: qr.pngDataUrl,
       logoUrl,
     });

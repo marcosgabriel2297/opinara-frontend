@@ -4,6 +4,24 @@ import { cn } from '@/lib/utils';
 import { printableUrl } from '../destination';
 import { type QrFormat } from '../qr-formats';
 
+/**
+ * Los textos de la hoja. Por defecto, los de una campaña de reseñas; la tarjeta de sellos pasa los
+ * suyos (que no hablan de reseñas).
+ */
+export interface SheetCopy {
+  headline: string;
+  subhead: string;
+  fallback: string;
+  qrAlt: string;
+}
+
+const campaignCopy = (campaignName: string): SheetCopy => ({
+  headline: t.campaigns.detail.printHeadline,
+  subhead: t.campaigns.detail.printSubhead,
+  fallback: t.campaigns.detail.printFallback,
+  qrAlt: `Código QR de la campaña ${campaignName}`,
+});
+
 /** Seis stickers por hoja: 2 × 3 de 80mm, con lugar para cortar (entran en el A4 con márgenes de 15mm). */
 const STICKERS_PER_SHEET = 6;
 
@@ -17,6 +35,7 @@ interface QrSheetProps {
   /** El logo del negocio (`logoUrl`), o `null`: sin logo la hoja queda solo con el nombre. */
   logoUrl?: string | null;
   format?: QrFormat;
+  copy?: SheetCopy;
 }
 
 /**
@@ -33,7 +52,15 @@ interface QrSheetProps {
  * Con logo, va arriba del nombre (en los stickers, en su lugar: no entran los dos). Sin logo no se
  * pone el de Opinara: la hoja sigue siendo del negocio.
  */
-export function QrSheet({ businessName, branch, campaignName, qr, logoUrl = null, format = 'poster' }: QrSheetProps) {
+export function QrSheet({
+  businessName,
+  branch,
+  campaignName,
+  qr,
+  logoUrl = null,
+  format = 'poster',
+  copy = campaignCopy(campaignName),
+}: QrSheetProps) {
   if (format === 'tent') {
     return (
       <div
@@ -49,9 +76,17 @@ export function QrSheet({ businessName, branch, campaignName, qr, logoUrl = null
           campaignName={campaignName}
           qr={qr}
           logoUrl={logoUrl}
+          copy={copy}
           flipped
         />
-        <TentPanel businessName={businessName} branch={branch} campaignName={campaignName} qr={qr} logoUrl={logoUrl} />
+        <TentPanel
+          businessName={businessName}
+          branch={branch}
+          campaignName={campaignName}
+          qr={qr}
+          logoUrl={logoUrl}
+          copy={copy}
+        />
       </div>
     );
   }
@@ -69,10 +104,8 @@ export function QrSheet({ businessName, branch, campaignName, qr, logoUrl = null
             key={index}
             className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-full border border-dashed border-black/40 p-3 print:h-[80mm] print:w-[80mm] print:gap-[2mm]"
           >
-            <QrImage qr={qr} campaignName={campaignName} className="w-1/2 print:w-[45mm]" decorative={index > 0} />
-            <p className="text-[0.625rem] leading-tight font-bold print:text-[11pt]">
-              {t.campaigns.detail.printHeadline}
-            </p>
+            <QrImage qr={qr} alt={copy.qrAlt} className="w-1/2 print:w-[45mm]" decorative={index > 0} />
+            <p className="text-[0.625rem] leading-tight font-bold print:text-[11pt]">{copy.headline}</p>
             {logoUrl === null ? (
               <p className="text-[0.5625rem] leading-tight print:text-[9pt]">{businessName}</p>
             ) : (
@@ -97,16 +130,13 @@ export function QrSheet({ businessName, branch, campaignName, qr, logoUrl = null
       <p className="text-lg leading-tight font-semibold print:text-[24pt]">{businessName}</p>
       {branch !== null && <p className="text-sm print:text-[16pt]">{branch}</p>}
 
-      <QrImage qr={qr} campaignName={campaignName} className="w-64 print:w-[110mm]" />
+      <QrImage qr={qr} alt={copy.qrAlt} className="w-64 print:w-[110mm]" />
 
-      <p className="text-xl leading-tight font-bold text-balance print:text-[32pt]">
-        {t.campaigns.detail.printHeadline}
-      </p>
-      <p className="text-sm print:text-[16pt]">{t.campaigns.detail.printSubhead}</p>
+      <p className="text-xl leading-tight font-bold text-balance print:text-[32pt]">{copy.headline}</p>
+      <p className="text-sm print:text-[16pt]">{copy.subhead}</p>
       {qr !== undefined && (
         <p className="text-xs print:text-[12pt]">
-          {t.campaigns.detail.printFallback}{' '}
-          <span className="font-medium [overflow-wrap:anywhere]">{printableUrl(qr.targetUrl)}</span>
+          {copy.fallback} <span className="font-medium [overflow-wrap:anywhere]">{printableUrl(qr.targetUrl)}</span>
         </p>
       )}
     </div>
@@ -116,11 +146,11 @@ export function QrSheet({ businessName, branch, campaignName, qr, logoUrl = null
 function TentPanel({
   businessName,
   branch,
-  campaignName,
   qr,
   logoUrl = null,
+  copy,
   flipped = false,
-}: Omit<QrSheetProps, 'format'> & { flipped?: boolean }) {
+}: Omit<QrSheetProps, 'format' | 'copy'> & { copy: SheetCopy; flipped?: boolean }) {
   return (
     <div
       className={cn(
@@ -135,9 +165,9 @@ function TentPanel({
         {businessName}
         {branch !== null && <span className="font-normal"> · {branch}</span>}
       </p>
-      <QrImage qr={qr} campaignName={campaignName} className="w-28 print:w-[70mm]" decorative={flipped} />
-      <p className="text-base leading-tight font-bold print:text-[22pt]">{t.campaigns.detail.printHeadline}</p>
-      <p className="text-xs print:text-[12pt]">{t.campaigns.detail.printSubhead}</p>
+      <QrImage qr={qr} alt={copy.qrAlt} className="w-28 print:w-[70mm]" decorative={flipped} />
+      <p className="text-base leading-tight font-bold print:text-[22pt]">{copy.headline}</p>
+      <p className="text-xs print:text-[12pt]">{copy.subhead}</p>
     </div>
   );
 }
@@ -153,12 +183,12 @@ function SheetLogo({ url, className }: { url: string; className: string }) {
  */
 function QrImage({
   qr,
-  campaignName,
+  alt,
   className,
   decorative = false,
 }: {
   qr: QrSheetProps['qr'];
-  campaignName: string;
+  alt: string;
   className: string;
   decorative?: boolean;
 }) {
@@ -177,7 +207,7 @@ function QrImage({
   return (
     <img
       src={qr.pngDataUrl}
-      alt={decorative ? '' : `Código QR de la campaña ${campaignName}`}
+      alt={decorative ? '' : alt}
       width={512}
       height={512}
       className={cn('aspect-square h-auto max-w-full [image-rendering:pixelated]', className)}
