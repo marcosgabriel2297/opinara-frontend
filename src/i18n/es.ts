@@ -175,6 +175,9 @@ export const t = {
       unknown: 'No pudimos consultar el estado de la conexión. Probá de nuevo en un momento.',
       manage: 'Administrar conexión',
     },
+    accessNotApproved: {
+      title: 'La integración con Google todavía no está habilitada',
+    },
     revokedBanner: {
       title: 'Se cortó la conexión con Google',
       description: 'Dejamos de recibir reseñas nuevas. Reconectá la cuenta para seguir.',

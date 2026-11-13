@@ -1,4 +1,4 @@
-import { AlertTriangleIcon } from 'lucide-react';
+import { AlertTriangleIcon, ClockIcon } from 'lucide-react';
 import { Link } from 'react-router';
 
 import { paths } from '@/app/paths';
@@ -6,6 +6,7 @@ import { ErrorState } from '@/components/error-state';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { errorMessage, t } from '@/i18n';
+import { isApiError } from '@/lib/http';
 
 import { needsGoogleReconnect } from '../reconnect';
 
@@ -17,6 +18,9 @@ import { needsGoogleReconnect } from '../reconnect';
  */
 export function GoogleErrorState({ error, onRetry }: { error: unknown; onRetry: () => void }) {
   if (needsGoogleReconnect(error)) return <GoogleReconnectAlert error={error} />;
+  if (isApiError(error) && error.errorCode === 'GOOGLE_API_ACCESS_NOT_APPROVED') {
+    return <GoogleAccessPendingAlert error={error} />;
+  }
 
   return <ErrorState error={error} onRetry={onRetry} />;
 }
@@ -35,6 +39,20 @@ export function GoogleReconnectAlert({ error }: { error: unknown }) {
           </Link>
         </Button>
       </AlertDescription>
+    </Alert>
+  );
+}
+
+/**
+ * Google todavía no aprobó el acceso de Opinara a la API (cuota en 0). No es un error del dueño ni
+ * algo pasajero: reintentar no sirve, así que no hay botón. Se resuelve solo cuando Google lo habilita.
+ */
+function GoogleAccessPendingAlert({ error }: { error: unknown }) {
+  return (
+    <Alert variant="warning">
+      <ClockIcon aria-hidden />
+      <AlertTitle>{t.google.accessNotApproved.title}</AlertTitle>
+      <AlertDescription>{errorMessage(error)}</AlertDescription>
     </Alert>
   );
 }
