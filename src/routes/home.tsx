@@ -1,5 +1,5 @@
 import { ArrowRightIcon, CheckIcon } from 'lucide-react';
-import { Link } from 'react-router';
+import { Link, Navigate } from 'react-router';
 
 import { paths } from '@/app/paths';
 import { ErrorState } from '@/components/error-state';
@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { useAuth } from '@/features/auth/use-auth';
-import { type Business } from '@/features/businesses/api/schemas';
+import { type Business, hasFeature } from '@/features/businesses/api/schemas';
 import { useCurrentBusiness } from '@/features/businesses/use-business';
 import { ScanChart } from '@/features/campaigns/components/scan-chart';
 import { useCampaigns, useScansByWeek } from '@/features/campaigns/queries';
@@ -42,6 +42,13 @@ function todayLabel(now: Date): string {
  * del lado del cliente.
  */
 export default function HomeRoute() {
+  const business = useCurrentBusiness();
+  // Con solo fidelización, la portada es la tarjeta de sellos.
+  if (!hasFeature(business, 'REVIEWS')) return <Navigate to={paths.loyalty} replace />;
+  return <ReviewsHome />;
+}
+
+function ReviewsHome() {
   const business = useCurrentBusiness();
   const { state } = useAuth();
   const summaryQuery = useReviewsSummary(business.urn);

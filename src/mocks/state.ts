@@ -149,7 +149,19 @@ export const givenMock = {
   },
   /** El negocio de prueba sin la tarjeta de sellos en su plan. */
   withoutLoyalty: () => {
-    mockState.businesses = mockState.businesses.map((business) => ({ ...business, features: [] }));
+    mockState.businesses = mockState.businesses.map((business) => ({
+      ...business,
+      plan: 'REVIEWS',
+      features: ['REVIEWS'],
+    }));
+  },
+  /** El negocio de prueba con el plan de solo fidelización: sin reseñas ni campañas. */
+  onlyLoyalty: () => {
+    mockState.businesses = mockState.businesses.map((business) => ({
+      ...business,
+      plan: 'LOYALTY',
+      features: ['LOYALTY'],
+    }));
   },
   loyaltyPrograms: (programs: LoyaltyProgram[]) => {
     mockState.loyalty.programs = programs.map((program) => structuredClone(program));

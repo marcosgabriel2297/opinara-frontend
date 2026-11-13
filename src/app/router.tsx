@@ -4,6 +4,8 @@ import { FullPageLoader } from '@/components/full-page-loader';
 import { RequireAnonymous, RequireAuth } from '@/features/auth/guards';
 import { BusinessProvider } from '@/features/businesses/business-provider';
 import { RequireBusiness } from '@/features/businesses/require-business';
+import { RequireFeature } from '@/features/businesses/require-feature';
+import { ReviewsUpsell } from '@/features/reviews/components/reviews-upsell';
 
 import { AuthLayout } from './layouts/auth-layout';
 import { DashboardLayout } from './layouts/dashboard-layout';
@@ -152,10 +154,24 @@ export const routes: RouteObject[] = [
             children: [
               {
                 // El modo foco ocupa la pantalla entera: sin la navegación, solo la fila de reseñas.
-                path: routePatterns.replyQueue,
-                lazy: async () => ({
-                  Component: (await import('@/features/reviews/routes/reply-queue-route')).default,
-                }),
+                element: (
+                  <RequireFeature
+                    feature="REVIEWS"
+                    fallback={
+                      <main className="mx-auto max-w-3xl px-4 py-10">
+                        <ReviewsUpsell />
+                      </main>
+                    }
+                  />
+                ),
+                children: [
+                  {
+                    path: routePatterns.replyQueue,
+                    lazy: async () => ({
+                      Component: (await import('@/features/reviews/routes/reply-queue-route')).default,
+                    }),
+                  },
+                ],
               },
               {
                 // La caja de la tarjeta de sellos, igual: pantalla completa para el mostrador.
@@ -170,28 +186,34 @@ export const routes: RouteObject[] = [
                 children: [
                   { index: true, lazy: async () => ({ Component: (await import('@/routes/home')).default }) },
                   {
-                    path: routePatterns.reviews,
-                    lazy: async () => ({
-                      Component: (await import('@/features/reviews/routes/reviews-route')).default,
-                    }),
-                  },
-                  {
-                    path: routePatterns.review,
-                    lazy: async () => ({
-                      Component: (await import('@/features/reviews/routes/review-detail-route')).default,
-                    }),
-                  },
-                  {
-                    path: routePatterns.campaigns,
-                    lazy: async () => ({
-                      Component: (await import('@/features/campaigns/routes/campaigns-route')).default,
-                    }),
-                  },
-                  {
-                    path: routePatterns.campaign,
-                    lazy: async () => ({
-                      Component: (await import('@/features/campaigns/routes/campaign-detail-route')).default,
-                    }),
+                    // Reseñas y campañas de QR: solo con reseñas en el plan (hay un plan de solo fidelización).
+                    element: <RequireFeature feature="REVIEWS" fallback={<ReviewsUpsell />} />,
+                    children: [
+                      {
+                        path: routePatterns.reviews,
+                        lazy: async () => ({
+                          Component: (await import('@/features/reviews/routes/reviews-route')).default,
+                        }),
+                      },
+                      {
+                        path: routePatterns.review,
+                        lazy: async () => ({
+                          Component: (await import('@/features/reviews/routes/review-detail-route')).default,
+                        }),
+                      },
+                      {
+                        path: routePatterns.campaigns,
+                        lazy: async () => ({
+                          Component: (await import('@/features/campaigns/routes/campaigns-route')).default,
+                        }),
+                      },
+                      {
+                        path: routePatterns.campaign,
+                        lazy: async () => ({
+                          Component: (await import('@/features/campaigns/routes/campaign-detail-route')).default,
+                        }),
+                      },
+                    ],
                   },
                   {
                     path: routePatterns.loyalty,

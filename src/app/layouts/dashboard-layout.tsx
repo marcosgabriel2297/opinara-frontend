@@ -5,6 +5,7 @@ import { Wordmark } from '@/components/brand-mark';
 import { OpinaraSignature } from '@/components/opinara-signature';
 import { UserMenu } from '@/features/auth/components/user-menu';
 import { BusinessLogo } from '@/features/businesses/components/business-logo';
+import { hasFeature } from '@/features/businesses/api/schemas';
 import { BusinessSwitcher } from '@/features/businesses/components/business-switcher';
 import { useCurrentBusiness } from '@/features/businesses/use-business';
 import { ConnectionBanner } from '@/features/google/components/connection-banner';
@@ -15,7 +16,8 @@ import { cn } from '@/lib/utils';
 import { paths } from '../paths';
 
 const navItems = [
-  { to: paths.home, label: t.nav.home, icon: SunIcon, end: true },
+  // "Hoy" es el resumen de las reseñas: sin reseñas en el plan, la portada es la tarjeta de sellos.
+  { to: paths.home, label: t.nav.home, icon: SunIcon, end: true, reviewsOnly: true },
   { to: paths.reviews, label: t.nav.reviews, icon: MessageSquareIcon, end: false, pending: true },
   { to: paths.campaigns, label: t.nav.campaigns, icon: QrCodeIcon, end: false },
   // Visible aunque el plan no la incluya: la sección explica qué es y cómo sumarla.
@@ -34,7 +36,10 @@ const navItems = [
  */
 export function DashboardLayout() {
   const business = useCurrentBusiness();
-  const summaryQuery = useReviewsSummary(business.urn);
+  const withReviews = hasFeature(business, 'REVIEWS');
+  // Sin reseñas en el plan no se pide el contador: el backend respondería 403 en cada pantalla.
+  const summaryQuery = useReviewsSummary(business.urn, withReviews);
+  const items = navItems.filter((item) => withReviews || item.reviewsOnly !== true);
   const pending = summaryQuery.data?.unanswered ?? 0;
 
   return (
@@ -63,11 +68,12 @@ export function DashboardLayout() {
         <nav
           aria-label={t.nav.sections}
           className={cn(
-            'no-imprimir bg-card fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t pb-[env(safe-area-inset-bottom)] [view-transition-name:tabbar]',
+            'no-imprimir bg-card fixed inset-x-0 bottom-0 z-20 grid border-t pb-[env(safe-area-inset-bottom)] [view-transition-name:tabbar]',
+            items.length === 5 ? 'grid-cols-5' : 'grid-cols-4',
             'lg:static lg:flex lg:flex-1 lg:flex-col lg:gap-0.5 lg:border-0 lg:bg-transparent lg:pb-0',
           )}
         >
-          {navItems.map(({ to, label, icon: Icon, end, pending: showsPending, last }) => (
+          {items.map(({ to, label, icon: Icon, end, pending: showsPending, last }) => (
             <NavLink
               key={to}
               to={to}
