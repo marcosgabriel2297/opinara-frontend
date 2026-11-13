@@ -88,6 +88,7 @@ export const t = {
     nav: 'Información legal',
   },
   businesses: {
+    planUpsellContact: 'Para sumarla a tu plan, escribinos a {email}.',
     onboarding: {
       title: 'Creá tu negocio',
       subtitle: 'Es el primer paso. Después conectás tu cuenta de Google.',
@@ -274,6 +275,16 @@ export const t = {
   },
 
   reviews: {
+    upsell: {
+      pageTitle: 'Reseñas',
+      title: 'Las reseñas vienen en otro plan',
+      body: 'Opinara junta las reseñas de Google de todas tus sucursales, te ayuda a responderlas y te arma los QR para pedirlas en el local.',
+      points: [
+        'Todas las reseñas de tus sucursales en un solo lugar.',
+        'Respuestas sugeridas, para contestar más rápido.',
+        'Un QR por sucursal que lleva directo a dejar una reseña en Google.',
+      ],
+    },
     title: 'Reseñas',
     location: 'Sucursal',
     filters: {
@@ -620,7 +631,6 @@ export const t = {
         'Desde la caja sumás sellos escaneando la tarjeta o buscando el celular.',
         'Al completar la tarjeta, el cliente se lleva el premio que elijas.',
       ],
-      contact: 'Para sumarla a tu plan, escribinos a {email}.',
     },
     program: {
       back: 'Volver a las tarjetas',

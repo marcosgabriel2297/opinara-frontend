@@ -85,10 +85,11 @@ export function useSyncBusiness(businessUrn: string) {
   });
 }
 
-export function useReviewsSummary(businessUrn: string) {
+export function useReviewsSummary(businessUrn: string, enabled = true) {
   return useQuery({
     queryKey: queryKeys.reviewsSummary(businessUrn),
     queryFn: () => reviewsApi.getReviewsSummary(businessUrn),
+    enabled,
   });
 }
 

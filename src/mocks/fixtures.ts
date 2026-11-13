@@ -24,7 +24,8 @@ export const mockBusiness: Business = {
   createdAt: '2026-01-05T12:00:00.000Z',
   logoUpdatedAt: null,
   role: 'OWNER',
-  features: ['LOYALTY'],
+  plan: 'REVIEWS_LOYALTY',
+  features: ['REVIEWS', 'LOYALTY'],
 };
 
 export const mockTokens = {
