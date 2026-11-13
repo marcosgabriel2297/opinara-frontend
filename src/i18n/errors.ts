@@ -54,10 +54,13 @@ export const errorMessages: Record<string, string> = {
   GOOGLE_CONNECTION_REVOKED: 'Se revocó el acceso a Google. Hay que volver a conectar la cuenta.',
   GOOGLE_INVALID_OAUTH_STATE: 'El pedido de autorización venció. Empezá la conexión de nuevo.',
   GOOGLE_OAUTH_EXCHANGE_FAILED: 'No pudimos completar la autorización con Google. Probá de nuevo.',
-  GOOGLE_MISSING_REFRESH_TOKEN: 'Google no devolvió los permisos completos. Volvé a conectar la cuenta.',
+  GOOGLE_MISSING_REFRESH_TOKEN:
+    'Google no devolvió los permisos completos. Quitá el acceso de Opinara en tu cuenta de Google (Seguridad → Conexiones con terceros) y volvé a conectar.',
   GOOGLE_PERMISSION_DENIED: 'Google no autoriza el acceso a ese recurso.',
   GOOGLE_RESOURCE_NOT_FOUND: 'Ese recurso ya no existe en Google Business Profile.',
   GOOGLE_RATE_LIMITED: 'Google está limitando los pedidos. Reintentá en un rato.',
+  GOOGLE_API_ACCESS_NOT_APPROVED:
+    'Google todavía no habilitó la integración. Tu cuenta ya quedó conectada: las sucursales van a aparecer cuando se habilite.',
   GOOGLE_UNAVAILABLE: 'Google no responde en este momento. Reintentá en un rato.',
 
   // Sucursales y reseñas

@@ -285,6 +285,21 @@ describe('elegir cuenta e importar sucursales', () => {
     expect(within(alert).getByRole('link', { name: 'Reconectar' })).toHaveAttribute('href', '/settings/google');
   });
 
+  it('si Google todavía no aprobó la API, lo explica sin ofrecer reintentar', async () => {
+    server.use(
+      http.get(`${API_BASE_URL}/businesses/:businessUrn/google/accounts`, () =>
+        HttpResponse.json(apiErrorBody(503, 'GOOGLE_API_ACCESS_NOT_APPROVED'), { status: 503 }),
+      ),
+    );
+    renderApp(['/settings/google/accounts']);
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('La integración con Google todavía no está habilitada');
+    expect(alert).toHaveTextContent('Tu cuenta ya quedó conectada');
+    expect(alert).not.toHaveTextContent('limitando');
+    expect(within(alert).queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument();
+  });
+
   it('marca las ya importadas y no deja volver a elegirlas', async () => {
     renderApp(['/settings/google/locations?account=accounts/1234567890']);
 
@@ -512,5 +527,28 @@ describe('datos del negocio en Configuración', () => {
     expect(address).toHaveTextContent('/r/cafe-de-la-esquina/campaña');
     // No es un link: `/r/{slug}` solo no abre ninguna página.
     expect(screen.queryByRole('link', { name: /\/r\// })).not.toBeInTheDocument();
+  });
+});
+
+describe('vuelta de Google con error', () => {
+  // El backend ahora redirige con `?error=` ante cualquier falla del callback, no solo si se cancela.
+  it.each([
+    ['GOOGLE_INVALID_OAUTH_STATE', 'El pedido de autorización venció.'],
+    ['GOOGLE_MISSING_REFRESH_TOKEN', 'Quitá el acceso de Opinara en tu cuenta de Google'],
+    ['GOOGLE_OAUTH_EXCHANGE_FAILED', 'No pudimos completar la autorización con Google.'],
+    ['GOOGLE_UNAVAILABLE', 'Google no responde en este momento.'],
+  ])('con %s explica qué pasó y deja volver a intentar', async (errorCode, message) => {
+    renderApp([`/settings/google/callback?error=${errorCode}`]);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(message);
+    expect(screen.getByRole('heading', { name: 'No pudimos conectar la cuenta' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Probar de nuevo' })).toBeInTheDocument();
+  });
+
+  it('con un código desconocido muestra un mensaje genérico, no el código', async () => {
+    renderApp(['/settings/google/callback?error=ALGO_NUEVO']);
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).not.toHaveTextContent('ALGO_NUEVO');
   });
 });
