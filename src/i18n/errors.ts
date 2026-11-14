@@ -94,6 +94,8 @@ export const errorMessages: Record<string, string> = {
   LOYALTY_WRONG_LOCATION: 'Esta tarjeta es de otra sucursal: no suma sellos acá.',
   LOYALTY_STAMP_COOLDOWN: 'Esta tarjeta recibió un sello hace un momento. Esperá unos minutos para sumar otro.',
   LOYALTY_NOT_ENOUGH_STAMPS: 'Todavía no tiene los sellos para el premio.',
+  LOYALTY_REMOVE_EXCEEDS_STAMPS: 'La tarjeta no tiene tantos sellos para sacar.',
+  LOYALTY_REMINDERS_OPTED_OUT: 'Este cliente pidió no recibir más recordatorios por WhatsApp.',
   LOYALTY_UNDO_NOT_ALLOWED: 'Ya no se puede deshacer: pasó el tiempo o hubo otra acción después.',
 
   // Del cliente

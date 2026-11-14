@@ -47,6 +47,8 @@ export const queryKeys = {
     ['businesses', businessUrn, 'loyalty', 'programs', programUrn] as const,
   loyaltyMembers: (businessUrn: string, programUrn: string, filters: Record<string, unknown>) =>
     ['businesses', businessUrn, 'loyalty', 'members', programUrn, filters] as const,
+  loyaltyReminders: (businessUrn: string, filters: Record<string, unknown>) =>
+    ['businesses', businessUrn, 'loyalty', 'reminders', filters] as const,
   loyaltyMember: (businessUrn: string, memberCode: string) =>
     ['businesses', businessUrn, 'loyalty', 'member', memberCode] as const,
   /** Fuera de `loyalty`, como el de campañas: un sello no cambia el QR impreso. */

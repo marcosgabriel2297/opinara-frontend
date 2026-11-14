@@ -1,4 +1,4 @@
-import { ChevronRightIcon, PlusIcon, ScanLineIcon, StampIcon } from 'lucide-react';
+import { BellIcon, ChevronRightIcon, PlusIcon, ScanLineIcon, StampIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router';
 
@@ -8,17 +8,17 @@ import { ErrorState } from '@/components/error-state';
 import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { hasFeature } from '@/features/businesses/api/schemas';
 import { useCurrentBusiness } from '@/features/businesses/use-business';
 import { useLocations } from '@/features/locations/queries';
-import { t } from '@/i18n';
+import { plural, t } from '@/i18n';
 
 import { CreateProgramForm } from '../components/create-program-form';
 import { LoyaltyUpsell } from '../components/loyalty-upsell';
-import { usePrograms } from '../queries';
+import { usePrograms, useReminders } from '../queries';
 
 /** Las tarjetas de sellos del negocio, una por sucursal, y la entrada a la caja. */
 export default function LoyaltyRoute() {
@@ -110,6 +110,8 @@ export default function LoyaltyRoute() {
       />
 
       <div className="grid max-w-4xl gap-6">
+        {canManage && programs.length > 0 && <RemindersEntry businessUrn={business.urn} />}
+
         {creating && (
           <CreateProgramForm
             businessUrn={business.urn}
@@ -181,5 +183,32 @@ export default function LoyaltyRoute() {
         )}
       </div>
     </>
+  );
+}
+
+/** El aviso de que hay recordatorios para mandar. Si no hay, no ocupa lugar. */
+function RemindersEntry({ businessUrn }: { businessUrn: string }) {
+  const remindersQuery = useReminders(businessUrn, { page: 0, limit: 1 });
+  const total = remindersQuery.data?.total ?? 0;
+  const r = t.loyalty.reminders;
+  if (total === 0) return null;
+
+  return (
+    <Card className="py-4">
+      <CardContent className="flex flex-wrap items-center gap-x-4 gap-y-3 sm:flex-nowrap">
+        <div className="bg-brand-soft text-brand-strong flex size-10 shrink-0 items-center justify-center rounded-lg">
+          <BellIcon aria-hidden className="size-5" />
+        </div>
+        <div className="grid min-w-0 flex-1 gap-0.5">
+          <p className="font-medium">{plural(total, r.entryTitle)}</p>
+          <p className="text-muted-foreground text-sm">{r.entryBody}</p>
+        </div>
+        <Button asChild variant="outline">
+          <Link viewTransition to={paths.loyaltyReminders}>
+            {r.entryAction}
+          </Link>
+        </Button>
+      </CardContent>
+    </Card>
   );
 }

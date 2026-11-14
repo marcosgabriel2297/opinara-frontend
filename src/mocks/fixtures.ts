@@ -213,6 +213,14 @@ export const mockTeam: Team = {
 export const mockResetToken = 'token-de-recuperacion-de-prueba-0123456789';
 export const mockInvitationToken = 'token-de-invitacion-de-prueba-0123456789';
 
+/** El recordatorio recomendado: el mismo texto que `config.Reminders.DefaultMessage` del backend. */
+export const mockDefaultReminderMessage =
+  '¡Hola, {nombre}! Te faltan solo {faltan} en tu tarjeta de {negocio} para tu premio: {premio}. ¡Te esperamos en {sucursal}! Acá tenés tu tarjeta:';
+
+/** El "te extrañamos" recomendado: el mismo texto que `config.Reminders.DefaultInactiveMessage`. */
+export const mockDefaultInactiveReminderMessage =
+  '¡Hola, {nombre}! Hace rato que no te vemos por {negocio}. Te faltan {faltan} para tu premio: {premio}. ¡Te esperamos en {sucursal}! Acá tenés tu tarjeta:';
+
 /** La tarjeta de sellos de la sucursal Centro. */
 export const mockLoyaltyProgram: LoyaltyProgram = {
   urn: 'urn:loyalty-program:centro',
@@ -223,6 +231,11 @@ export const mockLoyaltyProgram: LoyaltyProgram = {
   rewardDescription: 'Un café gratis',
   terms: 'No acumulable con otras promociones.',
   stampCooldownMinutes: 10,
+  reminderMessage: mockDefaultReminderMessage,
+  reminderMessageIsDefault: true,
+  inactiveDays: 20,
+  inactiveReminderMessage: mockDefaultInactiveReminderMessage,
+  inactiveReminderMessageIsDefault: true,
   stats: { members: 2, stamps: 8, redemptions: 1 },
   signupUrl: 'http://localhost:5173/f/cafe-de-la-esquina/centro',
   createdAt: '2026-11-01T12:00:00.000Z',
@@ -243,6 +256,9 @@ export const mockLoyaltyMembers: (LoyaltyMember & { cardToken: string })[] = [
     totalStamps: 3,
     totalRedemptions: 0,
     lastStampAt: null,
+    nextStampAt: null,
+    lastReminderAt: null,
+    remindersOptOutBy: null,
     marketing: true,
     createdAt: '2026-11-02T12:00:00.000Z',
     cardToken: 'token-de-la-tarjeta-de-ana-0123456789abcdef',
@@ -260,6 +276,9 @@ export const mockLoyaltyMembers: (LoyaltyMember & { cardToken: string })[] = [
     totalStamps: 10,
     totalRedemptions: 1,
     lastStampAt: null,
+    nextStampAt: null,
+    lastReminderAt: null,
+    remindersOptOutBy: null,
     marketing: false,
     createdAt: '2026-11-03T12:00:00.000Z',
     cardToken: 'token-de-la-tarjeta-de-bruno-0123456789abcd',

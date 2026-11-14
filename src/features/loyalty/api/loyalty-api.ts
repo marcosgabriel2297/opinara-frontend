@@ -1,5 +1,5 @@
 import { generatedQrSchema, type GeneratedQr } from '@/features/campaigns/api/schemas';
-import { api } from '@/lib/http';
+import { api, request } from '@/lib/http';
 
 import {
   cardLinkSchema,
@@ -9,6 +9,7 @@ import {
   loyaltyMembersPageSchema,
   loyaltyProgramSchema,
   loyaltyProgramsSchema,
+  loyaltyRemindersPageSchema,
   type CardLink,
   type LoyaltyActionResult,
   type LoyaltyMember,
@@ -16,6 +17,8 @@ import {
   type LoyaltyMembersPage,
   type LoyaltyProgram,
   type LoyaltyProgramStatus,
+  type LoyaltyReminderReason,
+  type LoyaltyRemindersPage,
 } from './schemas';
 
 const enc = encodeURIComponent;
@@ -48,6 +51,11 @@ export interface UpdateProgramInput {
   /** Vacío borra las condiciones. */
   terms?: string;
   stampCooldownMinutes?: number;
+  /** Vacío vuelve al texto recomendado. */
+  reminderMessage?: string;
+  inactiveDays?: number;
+  /** Vacío vuelve al texto recomendado. */
+  inactiveReminderMessage?: string;
 }
 
 export function updateProgram(
@@ -97,6 +105,19 @@ export function redeemReward(
   });
 }
 
+/** Corrección de OWNER o ADMIN: saca sellos mal puestos. Se puede deshacer como un sello. */
+export function removeStamps(
+  businessUrn: string,
+  programUrn: string,
+  memberCode: string,
+  stamps: number,
+): Promise<LoyaltyActionResult> {
+  return api.post(`${program(businessUrn, programUrn)}/members/${enc(memberCode)}/stamp-removals`, {
+    body: { stamps },
+    schema: loyaltyActionResultSchema,
+  });
+}
+
 export function undoEvent(businessUrn: string, eventUrn: string): Promise<LoyaltyMember> {
   return api.post(`${base(businessUrn)}/events/${enc(eventUrn)}/undo`, { schema: loyaltyMemberSchema });
 }
@@ -113,4 +134,29 @@ export function regenerateCardLink(businessUrn: string, memberCode: string): Pro
 
 export function deleteMember(businessUrn: string, memberCode: string): Promise<void> {
   return api.delete(`${base(businessUrn)}/members/${enc(memberCode)}`);
+}
+
+export interface RemindersQuery {
+  programUrn?: string | undefined;
+  reason?: LoyaltyReminderReason | undefined;
+  page?: number;
+  limit?: number;
+}
+
+/** Los recordatorios recomendados para mandar por WhatsApp. Solo OWNER y ADMIN. */
+export function listReminders(businessUrn: string, query: RemindersQuery): Promise<LoyaltyRemindersPage> {
+  return api.get(`${base(businessUrn)}/reminders`, { query: { ...query }, schema: loyaltyRemindersPageSchema });
+}
+
+/** Se abrió WhatsApp para mandarlo: no se vuelve a recomendar hasta su próximo sello. */
+export function markReminderSent(businessUrn: string, memberCode: string): Promise<void> {
+  return request(`${base(businessUrn)}/reminders/${enc(memberCode)}/sent`, { method: 'POST' });
+}
+
+/** El local deja de mandarle recordatorios porque lo pidió, o vuelve a mandarle. OWNER y ADMIN. */
+export function setMemberReminders(businessUrn: string, memberCode: string, enabled: boolean): Promise<LoyaltyMember> {
+  return api.put(`${base(businessUrn)}/members/${enc(memberCode)}/reminders`, {
+    body: { enabled },
+    schema: loyaltyMemberSchema,
+  });
 }

@@ -222,6 +222,12 @@ export const routes: RouteObject[] = [
                     }),
                   },
                   {
+                    path: routePatterns.loyaltyReminders,
+                    lazy: async () => ({
+                      Component: (await import('@/features/loyalty/routes/reminders-route')).default,
+                    }),
+                  },
+                  {
                     path: routePatterns.loyaltyProgram,
                     lazy: async () => ({
                       Component: (await import('@/features/loyalty/routes/program-route')).default,

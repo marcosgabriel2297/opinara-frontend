@@ -4,8 +4,14 @@ import { queryKeys } from '@/lib/query-keys';
 
 import * as loyaltyApi from './api/loyalty-api';
 import * as publicApi from './api/public-loyalty-api';
-import { type CreateProgramInput, type MembersQuery, type UpdateProgramInput } from './api/loyalty-api';
+import {
+  type CreateProgramInput,
+  type MembersQuery,
+  type RemindersQuery,
+  type UpdateProgramInput,
+} from './api/loyalty-api';
 import { type RegisterInput } from './api/public-loyalty-api';
+import { type LoyaltyCard } from './api/schemas';
 
 export function usePrograms(businessUrn: string, enabled = true) {
   return useQuery({
@@ -73,7 +79,7 @@ export function useMemberByCode(businessUrn: string, memberCode: string | null) 
   });
 }
 
-/** Sellar, canjear y deshacer cambian el saldo, la lista y los contadores: se invalida todo `loyalty`. */
+/** Sellar, canjear, sacar sellos y deshacer cambian el saldo, la lista y los contadores: se invalida todo `loyalty`. */
 export function useRegisterActions(businessUrn: string) {
   const queryClient = useQueryClient();
   const refresh = () => queryClient.invalidateQueries({ queryKey: queryKeys.loyalty(businessUrn) });
@@ -87,6 +93,11 @@ export function useRegisterActions(businessUrn: string) {
     redeem: useMutation({
       mutationFn: (input: { programUrn: string; memberCode: string }) =>
         loyaltyApi.redeemReward(businessUrn, input.programUrn, input.memberCode),
+      onSettled: refresh,
+    }),
+    removeStamps: useMutation({
+      mutationFn: (input: { programUrn: string; memberCode: string; stamps: number }) =>
+        loyaltyApi.removeStamps(businessUrn, input.programUrn, input.memberCode, input.stamps),
       onSettled: refresh,
     }),
     undo: useMutation({
@@ -104,6 +115,34 @@ export function useCardLink(businessUrn: string, memberCode: string, enabled: bo
     enabled,
     staleTime: Infinity,
     retry: false,
+  });
+}
+
+export function useReminders(businessUrn: string, query: RemindersQuery, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.loyaltyReminders(businessUrn, { ...query }),
+    queryFn: () => loyaltyApi.listReminders(businessUrn, query),
+    enabled,
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** Marcarlo enviado lo saca de la lista y cambia la tarjeta: se invalida todo `loyalty`. */
+export function useMarkReminderSent(businessUrn: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (memberCode: string) => loyaltyApi.markReminderSent(businessUrn, memberCode),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.loyalty(businessUrn) }),
+  });
+}
+
+/** No mandarle más recordatorios (o volver a mandarle): cambia la tarjeta y la lista de recordatorios. */
+export function useSetMemberReminders(businessUrn: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { memberCode: string; enabled: boolean }) =>
+      loyaltyApi.setMemberReminders(businessUrn, input.memberCode, input.enabled),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.loyalty(businessUrn) }),
   });
 }
 
@@ -144,4 +183,17 @@ export function useCard(token: string | null) {
 
 export function useDeleteCard() {
   return useMutation({ mutationFn: (token: string) => publicApi.deleteCard(token) });
+}
+
+/** El cliente, desde su tarjeta: actualiza la tarjeta en el caché sin esperar al próximo refresco. */
+export function useSetCardReminders(token: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (enabled: boolean) => publicApi.setCardReminders(token, enabled),
+    onSuccess: (remindersEnabled) => {
+      queryClient.setQueryData<LoyaltyCard>(queryKeys.loyaltyCard(token), (card) =>
+        card === undefined ? card : { ...card, member: { ...card.member, remindersEnabled } },
+      );
+    },
+  });
 }

@@ -1,4 +1,4 @@
-import { Trash2Icon } from 'lucide-react';
+import { BellIcon, BellOffIcon, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
 
 import { Pagination } from '@/components/pagination';
@@ -11,10 +11,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { errorMessage, plural, t } from '@/i18n';
+import { formatRelativeDays } from '@/lib/format';
 import { useDebouncedValue } from '@/lib/use-debounced-value';
 
 import { type LoyaltyMember, type LoyaltyProgram } from '../api/schemas';
-import { useDeleteMember, useMembers } from '../queries';
+import { useDeleteMember, useMembers, useSetMemberReminders } from '../queries';
 import { StampDots } from './stamp-dots';
 
 const PAGE_SIZE = 20;
@@ -36,6 +37,7 @@ export function ProgramMembers({
   const debounced = useDebouncedValue(search.trim());
   const membersQuery = useMembers(businessUrn, program.urn, { search: debounced, page, limit: PAGE_SIZE });
   const deleteMutation = useDeleteMember(businessUrn);
+  const remindersMutation = useSetMemberReminders(businessUrn);
   const toast = useToast();
 
   const hide = (code: string, value: boolean) => {
@@ -63,6 +65,22 @@ export function ProgramMembers({
         hide(member.memberCode, false);
       },
     });
+  };
+
+  /** Si el cliente lo pidió. Los que apagó él desde su tarjeta, solo él los vuelve a prender. */
+  const toggleReminders = (member: LoyaltyMember) => {
+    setActionError(null);
+    const enabled = member.remindersOptOutBy !== null;
+    remindersMutation.mutate(
+      { memberCode: member.memberCode, enabled },
+      {
+        onSuccess: () => {
+          const p = t.loyalty.program;
+          toast.show({ message: (enabled ? p.remindersResumed : p.remindersStopped).replace('{name}', member.name) });
+        },
+        onError: setActionError,
+      },
+    );
   };
 
   const members = (membersQuery.data?.items ?? []).filter((member) => !hidden.has(member.memberCode));
@@ -126,9 +144,35 @@ export function ProgramMembers({
                       .replace('{total}', String(member.stampsRequired))}
                     {member.totalRedemptions > 0 &&
                       ` · ${plural(member.totalRedemptions, t.loyalty.program.memberRedemptions)}`}
+                    {member.lastReminderAt !== null &&
+                      ` · ${t.loyalty.program.reminded.replace('{when}', formatRelativeDays(member.lastReminderAt) ?? '')}`}
                   </p>
                 </div>
                 {member.marketing && <Badge variant="outline">{t.loyalty.program.marketing}</Badge>}
+                {member.remindersOptOutBy !== null && (
+                  <Badge
+                    variant="outline"
+                    title={member.remindersOptOutBy === 'CLIENT' ? t.loyalty.program.remindersOffByClient : undefined}
+                  >
+                    {t.loyalty.program.remindersOff}
+                  </Badge>
+                )}
+                {canManage && member.remindersOptOutBy !== 'CLIENT' && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    disabled={remindersMutation.isPending}
+                    aria-label={(member.remindersOptOutBy === null
+                      ? t.loyalty.program.stopReminders
+                      : t.loyalty.program.resumeReminders
+                    ).replace('{name}', member.name)}
+                    onClick={() => {
+                      toggleReminders(member);
+                    }}
+                  >
+                    {member.remindersOptOutBy === null ? <BellOffIcon aria-hidden /> : <BellIcon aria-hidden />}
+                  </Button>
+                )}
                 {canManage && (
                   <Button
                     variant="ghost"

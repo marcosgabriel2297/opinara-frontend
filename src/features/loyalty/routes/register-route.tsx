@@ -1,4 +1,13 @@
-import { ArrowLeftIcon, GiftIcon, MessageCircleIcon, ScanLineIcon, StampIcon } from 'lucide-react';
+import {
+  ArrowLeftIcon,
+  ClockIcon,
+  GiftIcon,
+  MessageCircleIcon,
+  MinusIcon,
+  PlusIcon,
+  ScanLineIcon,
+  StampIcon,
+} from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 
@@ -13,7 +22,7 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { hasFeature } from '@/features/businesses/api/schemas';
 import { useCurrentBusiness } from '@/features/businesses/use-business';
-import { errorMessage, t } from '@/i18n';
+import { errorMessage, plural, t } from '@/i18n';
 import { isApiError } from '@/lib/http';
 import { useDebouncedValue } from '@/lib/use-debounced-value';
 
@@ -268,9 +277,12 @@ function Register({ program }: { program: LoyaltyProgram }) {
   );
 }
 
-type LastAction = { kind: 'stamp' | 'redeem'; result: LoyaltyActionResult } | { kind: 'undone' };
+type LastAction = { kind: 'stamp' | 'redeem' | 'remove'; result: LoyaltyActionResult } | { kind: 'undone' };
 
-/** La tarjeta elegida: sumar, canjear, deshacer, o el link nuevo si perdió el suyo. */
+/**
+ * La tarjeta elegida: sumar, canjear, deshacer, o el link nuevo si perdió el suyo. Un ADMIN
+ * además puede sacar sellos mal puestos cuando ya no se puede deshacer.
+ */
 function MemberPanel({
   program,
   memberCode,
@@ -286,6 +298,10 @@ function MemberPanel({
   const [last, setLast] = useState<LastAction | null>(null);
   const [actionError, setActionError] = useState<unknown>(null);
   const canUndo = useUndoWindow(last);
+  const lastResultMember = last !== null && last.kind !== 'undone' ? last.result.member : null;
+  const cooldown = useStampCooldown((lastResultMember ?? memberQuery.data)?.nextStampAt ?? null);
+  // Solo ADMIN, a pedido del negocio: ni el OWNER.
+  const canCorrect = business.role === 'ADMIN';
 
   if (memberQuery.isPending) return <Spinner label={t.common.loading} />;
   if (memberQuery.isError) {
@@ -308,7 +324,8 @@ function MemberPanel({
   // Lo último que respondió el backend manda: la consulta se refresca un instante después.
   const member: LoyaltyMember = last !== null && last.kind !== 'undone' ? last.result.member : detail;
   const paused = program.status !== 'ACTIVE' || !program.location.isActive;
-  const busy = actions.stamp.isPending || actions.redeem.isPending || actions.undo.isPending;
+  const busy =
+    actions.stamp.isPending || actions.redeem.isPending || actions.removeStamps.isPending || actions.undo.isPending;
 
   const run = async (kind: 'stamp' | 'redeem') => {
     setActionError(null);
@@ -316,6 +333,20 @@ function MemberPanel({
       const mutation = kind === 'stamp' ? actions.stamp : actions.redeem;
       const result = await mutation.mutateAsync({ programUrn: program.urn, memberCode: detail.memberCode });
       setLast({ kind, result });
+    } catch (error) {
+      setActionError(error);
+    }
+  };
+
+  const removeStamps = async (stamps: number) => {
+    setActionError(null);
+    try {
+      const result = await actions.removeStamps.mutateAsync({
+        programUrn: program.urn,
+        memberCode: detail.memberCode,
+        stamps,
+      });
+      setLast({ kind: 'remove', result });
     } catch (error) {
       setActionError(error);
     }
@@ -370,10 +401,19 @@ function MemberPanel({
         </Alert>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
-          <Button size="lg" className="h-16 text-lg" disabled={busy} onClick={() => void run('stamp')}>
-            <StampIcon aria-hidden className="size-6" />
-            {t.loyalty.register.addStamp}
-          </Button>
+          <div className="grid gap-2">
+            <Button
+              size="lg"
+              className="h-16 text-lg"
+              disabled={busy || cooldown !== null}
+              aria-describedby={cooldown !== null ? 'next-stamp' : undefined}
+              onClick={() => void run('stamp')}
+            >
+              <StampIcon aria-hidden className="size-6" />
+              {t.loyalty.register.addStamp}
+            </Button>
+            {cooldown !== null && <NextStamp id="next-stamp" cooldown={cooldown} />}
+          </div>
           <Button
             size="lg"
             variant={member.rewardAvailable ? 'default' : 'outline'}
@@ -401,6 +441,16 @@ function MemberPanel({
         )}
       </div>
 
+      {canCorrect && !otherLocation && member.stamps > 0 && (
+        <RemoveStamps
+          // Al cambiar el saldo se cierra: así no queda pedida una cantidad que ya no tiene.
+          key={member.stamps}
+          stamps={member.stamps}
+          busy={busy}
+          onConfirm={(count) => void removeStamps(count)}
+        />
+      )}
+
       <Button size="lg" variant={last === null ? 'outline' : 'default'} className="h-14" onClick={onDone}>
         {t.loyalty.register.next}
       </Button>
@@ -416,6 +466,16 @@ function LastActionNotice({ last, program }: { last: LastAction; program: Loyalt
   }
 
   const { member, rewardReached } = last.result;
+  if (last.kind === 'remove') {
+    return (
+      <p className="bg-muted rounded-lg px-4 py-3 text-center text-lg font-semibold">
+        {plural(last.result.event.amount, t.loyalty.register.stampsRemoved)}.{' '}
+        {t.loyalty.register.stampsRemovedBalance
+          .replace('{count}', String(member.stamps))
+          .replace('{total}', String(member.stampsRequired))}
+      </p>
+    );
+  }
   const text =
     last.kind === 'redeem'
       ? t.loyalty.register.redeemed.replace('{reward}', program.rewardDescription)
@@ -434,6 +494,163 @@ function LastActionNotice({ last, program }: { last: LastAction; program: Loyalt
       }
     >
       {text}
+    </p>
+  );
+}
+
+/**
+ * Corrección solo para ADMIN: sacar sellos puestos por error, cuando ya pasó el "Deshacer". Va
+ * plegada y pide la cantidad antes de confirmar, para que no se toque sin querer en la caja.
+ */
+function RemoveStamps({
+  stamps,
+  busy,
+  onConfirm,
+}: {
+  stamps: number;
+  busy: boolean;
+  onConfirm: (count: number) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [count, setCount] = useState(1);
+  const r = t.loyalty.register;
+
+  if (!open) {
+    return (
+      <Button
+        variant="ghost"
+        className="justify-self-center"
+        disabled={busy}
+        onClick={() => {
+          setOpen(true);
+        }}
+      >
+        <MinusIcon aria-hidden />
+        {r.removeStamps}
+      </Button>
+    );
+  }
+
+  return (
+    <Card>
+      <CardContent className="grid gap-4">
+        <div className="grid gap-1">
+          <p id="remove-stamps-title" className="font-medium">
+            {r.removeStampsTitle}
+          </p>
+          <p className="text-muted-foreground text-sm">{r.removeStampsHint}</p>
+        </div>
+        <div role="group" aria-labelledby="remove-stamps-title" className="flex items-center justify-center gap-4">
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label={r.removeStampsLess}
+            disabled={count <= 1}
+            onClick={() => {
+              setCount((current) => current - 1);
+            }}
+          >
+            <MinusIcon aria-hidden />
+          </Button>
+          <output aria-live="polite" className="min-w-8 text-center text-2xl font-semibold tabular-nums">
+            {count}
+          </output>
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label={r.removeStampsMore}
+            disabled={count >= stamps}
+            onClick={() => {
+              setCount((current) => current + 1);
+            }}
+          >
+            <PlusIcon aria-hidden />
+          </Button>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setOpen(false);
+            }}
+          >
+            {r.removeStampsCancel}
+          </Button>
+          <Button
+            variant="destructive"
+            disabled={busy}
+            onClick={() => {
+              onConfirm(count);
+            }}
+          >
+            {plural(count, r.removeStampsConfirm)}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+interface StampCooldown {
+  until: number;
+  remainingMs: number;
+}
+
+/**
+ * Cuánto falta para poder sumar otro sello, o `null` si ya se puede. Corre cada segundo mientras
+ * falta y se apaga sola al llegar: ahí el botón se vuelve a habilitar. El backend sigue siendo el
+ * que decide: si el reloj del dispositivo está adelantado, responde `LOYALTY_STAMP_COOLDOWN`.
+ */
+function useStampCooldown(nextStampAt: string | null): StampCooldown | null {
+  const until = nextStampAt === null ? null : Date.parse(nextStampAt);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (until === null || Number.isNaN(until)) return;
+    const tick = () => {
+      const current = Date.now();
+      setNow(current);
+      if (current >= until) window.clearInterval(timer);
+    };
+    // El primer tick enseguida: `now` puede venir de hace rato si la tarjeta estuvo abierta sin espera.
+    const first = window.setTimeout(tick, 0);
+    const timer = window.setInterval(tick, 1000);
+    return () => {
+      window.clearTimeout(first);
+      window.clearInterval(timer);
+    };
+  }, [until]);
+
+  if (until === null || Number.isNaN(until) || until <= now) return null;
+  return { until, remainingMs: until - now };
+}
+
+const timeFormat = new Intl.DateTimeFormat('es-AR', { hour: '2-digit', minute: '2-digit' });
+
+/** "Faltan 9:42" (o "1:05:00" si el tiempo mínimo es de horas). */
+function formatRemaining(ms: number): string {
+  const total = Math.ceil(ms / 1000);
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const seconds = String(total % 60).padStart(2, '0');
+  return hours > 0
+    ? `${String(hours)}:${String(minutes).padStart(2, '0')}:${seconds}`
+    : `${String(minutes)}:${seconds}`;
+}
+
+/**
+ * Cuándo se vuelve a poder sellar. La hora es lo que se lee (y lo que anuncia un lector de
+ * pantalla); la cuenta regresiva va aparte y sin `aria-live`, para no anunciar cada segundo.
+ */
+function NextStamp({ id, cooldown }: { id: string; cooldown: StampCooldown }) {
+  const r = t.loyalty.register;
+  return (
+    <p id={id} className="text-muted-foreground flex items-center justify-center gap-1.5 text-sm">
+      <ClockIcon aria-hidden className="size-4" />
+      <span>{r.nextStampAt.replace('{time}', timeFormat.format(cooldown.until))}</span>
+      <span aria-hidden className="tabular-nums">
+        · {r.nextStampIn.replace('{remaining}', formatRemaining(cooldown.remainingMs))}
+      </span>
     </p>
   );
 }

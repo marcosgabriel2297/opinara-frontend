@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 import { api } from '@/lib/http';
 
 import {
@@ -48,4 +50,17 @@ export function getCard(token: string): Promise<LoyaltyCard> {
 
 export function deleteCard(token: string): Promise<void> {
   return api.delete('/public/loyalty/card', { auth: false, headers: { [CARD_TOKEN_HEADER]: token } });
+}
+
+const cardRemindersSchema = z.object({ remindersEnabled: z.boolean() });
+
+/** El cliente apaga o prende los recordatorios del local por WhatsApp. */
+export async function setCardReminders(token: string, enabled: boolean): Promise<boolean> {
+  const { remindersEnabled } = await api.put('/public/loyalty/card/reminders', {
+    auth: false,
+    headers: { [CARD_TOKEN_HEADER]: token },
+    body: { enabled },
+    schema: cardRemindersSchema,
+  });
+  return remindersEnabled;
 }

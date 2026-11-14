@@ -1,11 +1,13 @@
 import { http, HttpResponse } from 'msw';
 
-import { type LoyaltyMember } from '@/features/loyalty/api/schemas';
+import { type LoyaltyEvent, type LoyaltyMember } from '@/features/loyalty/api/schemas';
 import { API_BASE_URL } from '@/lib/http';
 
 import {
   apiErrorBody,
   mockBusiness,
+  mockDefaultInactiveReminderMessage,
+  mockDefaultReminderMessage,
   mockImportedLocation,
   type mockLoyaltyMembers,
   mockQrPngDataUrl,
@@ -27,6 +29,18 @@ const withoutFeature = (businessUrn: unknown) => {
   return !business?.features.includes('LOYALTY');
 };
 
+/** Sacar sellos (y deshacerlo) queda solo para ADMIN, como en el backend. */
+const canCorrect = (businessUrn: unknown) => {
+  const business = mockState.businesses.find((candidate) => candidate.urn === decode(businessUrn));
+  return business?.role === 'ADMIN';
+};
+
+/** Ver y mandar recordatorios: OWNER y ADMIN. */
+const canManage = (businessUrn: unknown) => {
+  const business = mockState.businesses.find((candidate) => candidate.urn === decode(businessUrn));
+  return business?.role === 'OWNER' || business?.role === 'ADMIN';
+};
+
 const programOf = (urn: string) => mockState.loyalty.programs.find((program) => program.urn === urn);
 const memberByCode = (code: string) =>
   mockState.loyalty.members.find((member) => member.memberCode === code.toUpperCase());
@@ -36,7 +50,14 @@ function toStaff(member: StoredMember): LoyaltyMember {
   const program = programOf(member.programUrn);
   const stampsRequired = program?.stampsRequired ?? member.stampsRequired;
   const { cardToken: _token, ...rest } = member;
-  return { ...rest, stampsRequired, rewardAvailable: member.stamps >= stampsRequired };
+  const cooldownMs = (program?.stampCooldownMinutes ?? 0) * 60 * 1000;
+  return {
+    ...rest,
+    stampsRequired,
+    rewardAvailable: member.stamps >= stampsRequired,
+    nextStampAt:
+      member.lastStampAt === null ? null : new Date(Date.parse(member.lastStampAt) + cooldownMs).toISOString(),
+  };
 }
 
 function update(code: string, changes: Partial<StoredMember>): StoredMember {
@@ -58,7 +79,7 @@ function bump(programUrn: string, counter: 'members' | 'stamps' | 'redemptions',
   );
 }
 
-function record(member: StoredMember, type: 'STAMP' | 'REDEMPTION', amount: number) {
+function record(member: StoredMember, type: LoyaltyEvent['type'], amount: number) {
   const createdAt = new Date();
   const event = {
     urn: `urn:loyalty-event:${String(mockState.loyalty.events.length + 1)}`,
@@ -98,6 +119,7 @@ function publicView(member: StoredMember) {
       stamps: member.stamps,
       rewardAvailable: member.stamps >= program.stampsRequired,
       totalRedemptions: member.totalRedemptions,
+      remindersEnabled: member.remindersOptOutBy === null,
       createdAt: member.createdAt,
     },
   };
@@ -149,6 +171,11 @@ export const loyaltyHandlers = [
       rewardDescription: body.rewardDescription,
       terms: body.terms ?? null,
       stampCooldownMinutes: 10,
+      reminderMessage: mockDefaultReminderMessage,
+      reminderMessageIsDefault: true,
+      inactiveDays: 20,
+      inactiveReminderMessage: mockDefaultInactiveReminderMessage,
+      inactiveReminderMessageIsDefault: true,
       stats: { members: 0, stamps: 0, redemptions: 0 },
       signupUrl: `http://localhost:5173/f/${mockBusiness.slug}/${slug}`,
       createdAt: new Date().toISOString(),
@@ -171,6 +198,19 @@ export const loyaltyHandlers = [
       ...program,
       ...body,
       terms: body.terms === undefined ? program.terms : body.terms === '' ? null : (body.terms as string),
+      ...(body.reminderMessage === undefined
+        ? {}
+        : body.reminderMessage === '' || body.reminderMessage === mockDefaultReminderMessage
+          ? { reminderMessage: mockDefaultReminderMessage, reminderMessageIsDefault: true }
+          : { reminderMessage: body.reminderMessage as string, reminderMessageIsDefault: false }),
+      ...(body.inactiveReminderMessage === undefined
+        ? {}
+        : body.inactiveReminderMessage === '' || body.inactiveReminderMessage === mockDefaultInactiveReminderMessage
+          ? { inactiveReminderMessage: mockDefaultInactiveReminderMessage, inactiveReminderMessageIsDefault: true }
+          : {
+              inactiveReminderMessage: body.inactiveReminderMessage as string,
+              inactiveReminderMessageIsDefault: false,
+            }),
     };
     mockState.loyalty.programs = mockState.loyalty.programs.map((candidate) =>
       candidate.urn === program.urn ? updated : candidate,
@@ -274,6 +314,28 @@ export const loyaltyHandlers = [
     );
   }),
 
+  http.post(`${base}/programs/:programUrn/members/:memberCode/stamp-removals`, async ({ params, request }) => {
+    if (!canCorrect(params.businessUrn)) return error(403, 'BUSINESS_FORBIDDEN');
+    const program = programOf(decode(params.programUrn));
+    if (program === undefined) return error(404, 'LOYALTY_PROGRAM_NOT_FOUND');
+    const member = memberByCode(decode(params.memberCode));
+    if (member === undefined) return error(404, 'LOYALTY_MEMBER_NOT_FOUND');
+    if (member.programUrn !== program.urn) return error(409, 'LOYALTY_WRONG_LOCATION');
+    const { stamps } = (await request.json()) as { stamps: number };
+    if (!Number.isInteger(stamps) || stamps < 1) return error(400, 'BAD_REQUEST');
+    if (member.stamps < stamps) return error(409, 'LOYALTY_REMOVE_EXCEEDS_STAMPS');
+
+    const updated = update(member.memberCode, {
+      stamps: member.stamps - stamps,
+      totalStamps: member.totalStamps - stamps,
+    });
+    bump(program.urn, 'stamps', -stamps);
+    return HttpResponse.json(
+      { member: toStaff(updated), event: record(updated, 'STAMP_REMOVAL', stamps), rewardReached: false },
+      { status: 201 },
+    );
+  }),
+
   http.post(`${base}/events/:eventUrn/undo`, ({ params }) => {
     const event = mockState.loyalty.events.find((candidate) => candidate.urn === decode(params.eventUrn));
     if (event === undefined) return error(404, 'NOT_FOUND');
@@ -283,25 +345,119 @@ export const loyaltyHandlers = [
     if (event.undone || latest?.urn !== event.urn || Date.parse(event.undoableUntil) < Date.now()) {
       return error(409, 'LOYALTY_UNDO_NOT_ALLOWED');
     }
+    if (event.type === 'STAMP_REMOVAL' && !canCorrect(params.businessUrn)) return error(403, 'FORBIDDEN');
     const member = mockState.loyalty.members.find((candidate) => candidate.urn === event.memberUrn);
     if (member === undefined) return error(404, 'LOYALTY_MEMBER_NOT_FOUND');
 
     mockState.loyalty.events = mockState.loyalty.events.map((candidate) =>
       candidate.urn === event.urn ? { ...candidate, undone: true } : candidate,
     );
-    const reverted =
-      event.type === 'STAMP'
-        ? update(member.memberCode, {
-            stamps: member.stamps - 1,
-            totalStamps: member.totalStamps - 1,
-            lastStampAt: null,
-          })
-        : update(member.memberCode, {
-            stamps: member.stamps + event.amount,
-            totalRedemptions: member.totalRedemptions - 1,
-          });
-    bump(event.programUrn, event.type === 'STAMP' ? 'stamps' : 'redemptions', -1);
+    let reverted: StoredMember;
+    if (event.type === 'STAMP') {
+      reverted = update(member.memberCode, {
+        stamps: member.stamps - 1,
+        totalStamps: member.totalStamps - 1,
+        lastStampAt: null,
+      });
+      bump(event.programUrn, 'stamps', -1);
+    } else if (event.type === 'REDEMPTION') {
+      reverted = update(member.memberCode, {
+        stamps: member.stamps + event.amount,
+        totalRedemptions: member.totalRedemptions - 1,
+      });
+      bump(event.programUrn, 'redemptions', -1);
+    } else {
+      reverted = update(member.memberCode, {
+        stamps: member.stamps + event.amount,
+        totalStamps: member.totalStamps + event.amount,
+      });
+      bump(event.programUrn, 'stamps', event.amount);
+    }
     return HttpResponse.json(toStaff(reverted));
+  }),
+
+  /** Misma regla que el backend: cerca del premio (desde el día siguiente) o sin venir hace `inactiveDays`; uno por vuelta. */
+  http.get(`${base}/reminders`, ({ params, request }) => {
+    if (withoutFeature(params.businessUrn)) return error(403, 'PLAN_FEATURE_NOT_INCLUDED');
+    if (!canManage(params.businessUrn)) return error(403, 'BUSINESS_FORBIDDEN');
+    const url = new URL(request.url);
+    const programUrn = url.searchParams.get('programUrn');
+    const reasonFilter = url.searchParams.get('reason');
+    const page = Number(url.searchParams.get('page') ?? '0');
+    const limit = Number(url.searchParams.get('limit') ?? '20');
+    const today = new Date().toDateString();
+    const now = Date.now();
+    const DAY_MS = 24 * 60 * 60 * 1000;
+
+    const matches = mockState.loyalty.members.flatMap((member) => {
+      const program = programOf(member.programUrn);
+      if (program?.status !== 'ACTIVE' || !program.location.isActive) return [];
+      if (programUrn !== null && program.urn !== programUrn) return [];
+      if (member.remindersOptOutBy !== null) return [];
+      const lastVisit = member.lastStampAt ?? member.createdAt ?? new Date(now).toISOString();
+      if (member.lastReminderAt !== null && Date.parse(member.lastReminderAt) >= Date.parse(lastVisit)) return [];
+      const missing = program.stampsRequired - member.stamps;
+      const near =
+        member.stamps >= 1 &&
+        missing >= 1 &&
+        missing <= 2 &&
+        member.lastStampAt !== null &&
+        new Date(member.lastStampAt).toDateString() !== today;
+      // Igual que el backend: "no viene" es para los que no están cerca del premio (o tienen 0 sellos).
+      const inactive =
+        member.stamps < Math.max(1, program.stampsRequired - 2) &&
+        now - Date.parse(lastVisit) >= program.inactiveDays * DAY_MS;
+      const reason = near ? 'NEAR_REWARD' : inactive ? 'INACTIVE' : null;
+      if (reason === null || (reasonFilter !== null && reasonFilter !== reason)) return [];
+      return [{ member, program, reason, missing, lastVisit }];
+    });
+
+    return HttpResponse.json({
+      items: matches.slice(page * limit, (page + 1) * limit).map(({ member, program, reason, missing, lastVisit }) => {
+        const values: Record<string, string> = {
+          nombre: member.name.split(' ')[0] ?? member.name,
+          faltan: missing === 1 ? '1 sello' : `${String(missing)} sellos`,
+          sellos: `${String(member.stamps)} de ${String(program.stampsRequired)} sellos`,
+          premio: program.rewardDescription,
+          negocio: mockBusiness.name,
+          sucursal: program.location.title,
+        };
+        const template = reason === 'NEAR_REWARD' ? program.reminderMessage : program.inactiveReminderMessage;
+        const text = template.replace(/\{(\w+)\}/g, (match, name: string) => values[name] ?? match);
+        return {
+          member: toStaff(member),
+          program: { urn: member.programUrn, locationTitle: program.location.title },
+          reason,
+          missingStamps: missing,
+          daysSinceVisit: Math.floor((now - Date.parse(lastVisit)) / DAY_MS),
+          message: `${text.trim()}\nhttp://localhost:5173/card#token=${member.cardToken}`,
+        };
+      }),
+      page,
+      limit,
+      total: matches.length,
+    });
+  }),
+
+  http.post(`${base}/reminders/:memberCode/sent`, ({ params }) => {
+    if (!canManage(params.businessUrn)) return error(403, 'BUSINESS_FORBIDDEN');
+    const member = memberByCode(decode(params.memberCode));
+    if (member === undefined) return error(404, 'LOYALTY_MEMBER_NOT_FOUND');
+    if (member.remindersOptOutBy !== null) return error(409, 'LOYALTY_REMINDERS_OPTED_OUT');
+    update(member.memberCode, { lastReminderAt: new Date().toISOString() });
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  http.put(`${base}/members/:memberCode/reminders`, async ({ params, request }) => {
+    if (!canManage(params.businessUrn)) return error(403, 'BUSINESS_FORBIDDEN');
+    const member = memberByCode(decode(params.memberCode));
+    if (member === undefined) return error(404, 'LOYALTY_MEMBER_NOT_FOUND');
+    const { enabled } = (await request.json()) as { enabled: boolean };
+    if (enabled && member.remindersOptOutBy === 'CLIENT') return error(409, 'LOYALTY_REMINDERS_OPTED_OUT');
+    const updated = update(member.memberCode, {
+      remindersOptOutBy: enabled ? null : (member.remindersOptOutBy ?? 'BUSINESS'),
+    });
+    return HttpResponse.json(toStaff(updated));
   }),
 
   http.get(`${base}/members/:memberCode/card-link`, ({ params }) => {
@@ -344,6 +500,15 @@ export const loyaltyHandlers = [
     mockState.loyalty.members = mockState.loyalty.members.filter((candidate) => candidate.urn !== member.urn);
     bump(member.programUrn, 'members', -1);
     return new HttpResponse(null, { status: 204 });
+  }),
+
+  http.put(`${API_BASE_URL}/public/loyalty/card/reminders`, async ({ request }) => {
+    const token = request.headers.get(TOKEN_HEADER);
+    const member = mockState.loyalty.members.find((candidate) => candidate.cardToken === token);
+    if (member === undefined) return error(404, 'LOYALTY_CARD_NOT_FOUND');
+    const { enabled } = (await request.json()) as { enabled: boolean };
+    const updated = update(member.memberCode, { remindersOptOutBy: enabled ? null : 'CLIENT' });
+    return HttpResponse.json({ remindersEnabled: updated.remindersOptOutBy === null });
   }),
 
   http.post(`${API_BASE_URL}/public/loyalty/card/resend`, () => new HttpResponse(null, { status: 204 })),
@@ -401,6 +566,9 @@ export const loyaltyHandlers = [
         totalStamps: 0,
         totalRedemptions: 0,
         lastStampAt: null,
+        nextStampAt: null,
+        lastReminderAt: null,
+        remindersOptOutBy: null,
         marketing: body.marketing,
         createdAt: new Date().toISOString(),
         cardToken,

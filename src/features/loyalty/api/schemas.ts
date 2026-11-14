@@ -14,6 +14,13 @@ export const loyaltyProgramSchema = z.object({
   rewardDescription: z.string(),
   terms: z.string().nullable(),
   stampCooldownMinutes: z.number(),
+  /** La plantilla del recordatorio por WhatsApp que se usa (la propia o la recomendada). */
+  reminderMessage: z.string(),
+  reminderMessageIsDefault: z.boolean(),
+  /** Días sin venir para recomendar el "te extrañamos", y su plantilla. */
+  inactiveDays: z.number(),
+  inactiveReminderMessage: z.string(),
+  inactiveReminderMessageIsDefault: z.boolean(),
   stats: z.object({ members: z.number(), stamps: z.number(), redemptions: z.number() }),
   /** Lo que codifica el QR de alta. Apunta al frontend. */
   signupUrl: z.string(),
@@ -36,6 +43,15 @@ export const loyaltyMemberSchema = z.object({
   totalStamps: z.number(),
   totalRedemptions: z.number(),
   lastStampAt: z.string().nullable(),
+  /**
+   * Desde cuándo se puede sumar el próximo sello (lo calcula el backend con el tiempo mínimo del
+   * programa). `null` si nunca recibió uno o se deshizo; si ya pasó, se puede sellar.
+   */
+  nextStampAt: z.string().nullable(),
+  /** Cuándo se abrió WhatsApp para mandarle el último recordatorio. */
+  lastReminderAt: z.string().nullable(),
+  /** Si pidió no recibir recordatorios, quién los apagó: él desde su tarjeta o el local. */
+  remindersOptOutBy: z.enum(['CLIENT', 'BUSINESS']).nullable(),
   marketing: z.boolean(),
   createdAt: z.string().optional(),
 });
@@ -58,7 +74,7 @@ export type LoyaltyMembersPage = z.infer<typeof loyaltyMembersPageSchema>;
 export const loyaltyEventSchema = z.object({
   /** Vacío si el backend no pudo guardar el historial: el sello vale, pero no se puede deshacer. */
   urn: z.string(),
-  type: z.enum(['STAMP', 'REDEMPTION']),
+  type: z.enum(['STAMP', 'REDEMPTION', 'STAMP_REMOVAL']),
   amount: z.number(),
   createdAt: z.string().optional(),
   undoableUntil: z.string(),
@@ -72,6 +88,28 @@ export const loyaltyActionResultSchema = z.object({
   rewardReached: z.boolean(),
 });
 export type LoyaltyActionResult = z.infer<typeof loyaltyActionResultSchema>;
+
+/** Un recordatorio recomendado: el mensaje ya viene armado, con el link de la tarjeta al final. */
+export const loyaltyReminderSchema = z.object({
+  member: loyaltyMemberSchema,
+  program: z.object({ urn: z.string(), locationTitle: z.string() }),
+  /** Por qué se recomienda: le falta poco, o hace un tiempo que no viene. */
+  reason: z.enum(['NEAR_REWARD', 'INACTIVE']),
+  missingStamps: z.number(),
+  /** Días desde su última visita: el último sello o, si no tiene, el alta. */
+  daysSinceVisit: z.number(),
+  message: z.string(),
+});
+export type LoyaltyReminder = z.infer<typeof loyaltyReminderSchema>;
+export type LoyaltyReminderReason = LoyaltyReminder['reason'];
+
+export const loyaltyRemindersPageSchema = z.object({
+  items: z.array(loyaltyReminderSchema),
+  page: z.number(),
+  limit: z.number(),
+  total: z.number(),
+});
+export type LoyaltyRemindersPage = z.infer<typeof loyaltyRemindersPageSchema>;
 
 export const cardLinkSchema = z.object({ cardUrl: z.string(), pngDataUrl: z.string() });
 export type CardLink = z.infer<typeof cardLinkSchema>;
@@ -114,6 +152,8 @@ export const loyaltyCardSchema = z.object({
     stamps: z.number(),
     rewardAvailable: z.boolean(),
     totalRedemptions: z.number(),
+    /** Si acepta los recordatorios del local por WhatsApp. */
+    remindersEnabled: z.boolean(),
     createdAt: z.string().optional(),
   }),
 });
