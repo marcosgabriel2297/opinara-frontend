@@ -35,6 +35,8 @@ export const routePatterns = {
   /** Tarjeta de sellos: los programas por sucursal. */
   loyalty: '/loyalty',
   loyaltyProgram: '/loyalty/programs/:programUrn',
+  /** Los recordatorios por WhatsApp recomendados para mandar. */
+  loyaltyReminders: '/loyalty/reminders',
   /** La caja: pantalla completa, sin la navegación. */
   loyaltyRegister: '/loyalty/register',
   settings: '/settings',
@@ -90,6 +92,7 @@ export const paths = {
   loyalty: routePatterns.loyalty,
   loyaltyProgram: (programUrn: string) => `/loyalty/programs/${enc(programUrn)}`,
   loyaltyRegister: routePatterns.loyaltyRegister,
+  loyaltyReminders: routePatterns.loyaltyReminders,
   loyaltyCard: routePatterns.loyaltyCard,
   settings: routePatterns.settings,
   newLocation: routePatterns.newLocation,

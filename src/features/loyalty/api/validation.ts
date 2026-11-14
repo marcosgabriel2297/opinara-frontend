@@ -30,6 +30,31 @@ export const editProgramSchema = z.object({
 });
 export type EditProgramValues = z.infer<typeof editProgramSchema>;
 
+const r = t.loyalty.reminderSettings;
+
+/** Las variables del recordatorio: las mismas que acepta el backend (`config.Reminders.Placeholders`). */
+export const REMINDER_PLACEHOLDERS = ['nombre', 'faltan', 'sellos', 'premio', 'negocio', 'sucursal'] as const;
+const reminderPattern = new RegExp(`^(?:[^{}]|\\{(?:${REMINDER_PLACEHOLDERS.join('|')})\\})*$`);
+const reminderMessage = z
+  .string()
+  .trim()
+  .min(1, r.required)
+  .max(500, r.tooLong)
+  .regex(reminderPattern, r.unknownPlaceholder);
+
+/** Mismos límites que `config.Reminders` del backend. */
+export const INACTIVE_DAYS = { min: 7, max: 365 } as const;
+
+export const reminderMessageSchema = z.object({
+  message: reminderMessage,
+  inactiveDays: z
+    .number({ error: r.inactiveDaysRange })
+    .int(r.inactiveDaysRange)
+    .min(INACTIVE_DAYS.min, r.inactiveDaysRange)
+    .max(INACTIVE_DAYS.max, r.inactiveDaysRange),
+});
+export type ReminderMessageValues = z.infer<typeof reminderMessageSchema>;
+
 const s = t.loyalty.signup.validation;
 
 /** El celular lo normaliza el backend (con o sin 0, 15 o +54): acá solo se pide que haya algo. */

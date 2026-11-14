@@ -28,6 +28,15 @@ describe('el alta de la tarjeta', () => {
     expect(screen.queryByText(/reseña/i)).not.toBeInTheDocument();
   });
 
+  it('avisa en las condiciones que puede recibir avisos de su tarjeta por WhatsApp', async () => {
+    renderApp([SIGNUP]);
+
+    const accept = await screen.findByRole('checkbox', { name: /Acepto la política de privacidad/ });
+    expect(accept).toHaveAccessibleDescription(
+      `${mockBusiness.name} puede escribirte por WhatsApp para avisarte de tu tarjeta, por ejemplo cuando te falta poco para el premio. Lo podés apagar cuando quieras desde tu tarjeta.`,
+    );
+  });
+
   it('exige aceptar las condiciones', async () => {
     const { user } = renderApp([SIGNUP]);
 
@@ -179,5 +188,23 @@ describe('la tarjeta', () => {
 
     expect(await screen.findByText('3 de 5 sellos')).toBeInTheDocument();
     expect(screen.getByText('Por ahora esta tarjeta no suma sellos.')).toBeInTheDocument();
+  });
+});
+
+describe('los avisos por WhatsApp desde la tarjeta', () => {
+  it('el cliente los apaga y los vuelve a prender', async () => {
+    const { user } = renderApp([`/card#token=${ANA.cardToken}`]);
+
+    const toggle = await screen.findByRole('checkbox', { name: /me avise por WhatsApp/ });
+    expect(toggle).toBeChecked();
+
+    await user.click(toggle);
+    expect(await screen.findByText('Listo, no te van a llegar más avisos.')).toBeInTheDocument();
+    expect(toggle).not.toBeChecked();
+    expect(mockState.loyalty.members[0]?.remindersOptOutBy).toBe('CLIENT');
+
+    await user.click(toggle);
+    expect(await screen.findByText('Listo, te vamos a avisar.')).toBeInTheDocument();
+    expect(mockState.loyalty.members[0]?.remindersOptOutBy).toBeNull();
   });
 });

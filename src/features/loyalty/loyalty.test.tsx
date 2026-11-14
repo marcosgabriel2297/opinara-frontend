@@ -1,5 +1,5 @@
 import { screen, waitFor, within } from '@testing-library/react';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { session } from '@/lib/http';
 import { mockBusiness, mockLoyaltyMembers, mockLoyaltyProgram } from '@/mocks/fixtures';
@@ -175,16 +175,82 @@ describe('la caja', () => {
     expect(mockState.loyalty.members[0]?.stamps).toBe(3);
   });
 
-  it('no deja sumar dos sellos seguidos a la misma tarjeta', async () => {
+  it('el ADMIN saca sellos puestos por error y lo puede deshacer', async () => {
+    givenMock.businesses([{ ...mockBusiness, role: 'ADMIN' }]);
+    const { user } = renderApp(['/loyalty/register']);
+
+    await openCard(user, 'Ana', 'ana');
+    await user.click(await screen.findByRole('button', { name: 'Quitar sellos' }));
+    expect(screen.getByRole('button', { name: 'Uno menos' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Uno más' }));
+    await user.click(screen.getByRole('button', { name: 'Quitar 2 sellos' }));
+
+    expect(await screen.findByText('Le sacamos 2 sellos. Quedan 1 de 5.')).toBeInTheDocument();
+    expect(mockState.loyalty.members[0]).toMatchObject({ stamps: 1, totalStamps: ANA.totalStamps - 2 });
+
+    await user.click(screen.getByRole('button', { name: 'Deshacer' }));
+    expect(await screen.findByText('Listo, lo deshicimos.')).toBeInTheDocument();
+    expect(mockState.loyalty.members[0]?.stamps).toBe(3);
+  });
+
+  it('no deja sacar más sellos de los que tiene', async () => {
+    givenMock.businesses([{ ...mockBusiness, role: 'ADMIN' }]);
+    givenMock.loyaltyMembers([{ ...ANA, stamps: 1 }, BRUNO]);
+    const { user } = renderApp(['/loyalty/register']);
+
+    await openCard(user, 'Ana', 'ana');
+    await user.click(await screen.findByRole('button', { name: 'Quitar sellos' }));
+
+    expect(screen.getByRole('button', { name: 'Uno más' })).toBeDisabled();
+  });
+
+  it.each(['OWNER', 'MEMBER'] as const)('un %s no ve "Quitar sellos"', async (role) => {
+    givenMock.businesses([{ ...mockBusiness, role }]);
+    const { user } = renderApp(['/loyalty/register']);
+
+    await openCard(user, 'Ana', 'ana');
+    await screen.findByText('3 de 5 sellos');
+
+    expect(screen.queryByRole('button', { name: 'Quitar sellos' })).not.toBeInTheDocument();
+  });
+
+  it('después de un sello, dice desde cuándo se puede sumar otro y no deja tocar antes', async () => {
     const { user } = renderApp(['/loyalty/register']);
 
     await openCard(user, 'Ana', 'ana');
     await user.click(await screen.findByRole('button', { name: 'Sumar sello' }));
     await screen.findByText('Sello sumado: 4 de 5.');
-    await user.click(screen.getByRole('button', { name: 'Sumar sello' }));
 
-    expect(await screen.findByText(/recibió un sello hace un momento/)).toBeInTheDocument();
+    const next = new Intl.DateTimeFormat('es-AR', { hour: '2-digit', minute: '2-digit' }).format(
+      Date.parse(mockState.loyalty.members[0]?.lastStampAt ?? '') + 10 * 60 * 1000,
+    );
+    const button = screen.getByRole('button', { name: 'Sumar sello' });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAccessibleDescription(`Próximo sello desde las ${next}`);
+    expect(screen.getByText(/Faltan (10:00|9:5\d)/)).toBeInTheDocument();
     expect(mockState.loyalty.members[0]?.stamps).toBe(4);
+  });
+
+  it('al cumplirse el tiempo mínimo, "Sumar sello" se vuelve a habilitar solo', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const lastStampAt = new Date(Date.now() - 10 * 60 * 1000 + 5000).toISOString();
+      givenMock.loyaltyMembers([{ ...ANA, lastStampAt }, BRUNO]);
+      const { user } = renderApp(['/loyalty/register']);
+
+      await openCard(user, 'Ana', 'ana');
+      expect(await screen.findByRole('button', { name: 'Sumar sello' })).toBeDisabled();
+      expect(screen.getByText(/Faltan 0:0\d/)).toBeInTheDocument();
+
+      await vi.advanceTimersByTimeAsync(6000);
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Sumar sello' })).toBeEnabled();
+      });
+      expect(screen.queryByText(/Próximo sello desde/)).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('avisa el premio al completar la tarjeta y lo canjea', async () => {

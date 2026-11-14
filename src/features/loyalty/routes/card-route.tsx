@@ -6,6 +6,7 @@ import { Link, useLocation, useNavigate } from 'react-router';
 import { paths } from '@/app/paths';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Spinner } from '@/components/ui/spinner';
 import { errorMessage, plural, t } from '@/i18n';
 import { isApiError } from '@/lib/http';
@@ -17,7 +18,7 @@ import { cardTokenFromHash, forgetCardToken, readCardTokens, rememberCardToken }
 import { PublicShell } from '../components/public-shell';
 import { StampDots } from '../components/stamp-dots';
 import { formatMemberCode } from '../member-code';
-import { useCard, useDeleteCard } from '../queries';
+import { useCard, useDeleteCard, useSetCardReminders } from '../queries';
 import { whatsAppUrl } from '../whatsapp';
 
 const cardHref = (token: string) => `${paths.loyaltyCard}#token=${token}`;
@@ -213,6 +214,7 @@ function CardView({
         )}
       </details>
 
+      <RemindersToggle card={card} token={token} />
       <MyData card={card} token={token} onDeleted={onDeleted} />
     </PublicShell>
   );
@@ -240,6 +242,43 @@ function SendToMe({ card, token }: { card: LoyaltyCard; token: string }) {
       </Button>
       <p className="text-muted-foreground text-xs">{c.sendToMeHint}</p>
     </div>
+  );
+}
+
+/**
+ * Los recordatorios del local por WhatsApp ("te falta poco para el premio"). Se guarda al tocar: si
+ * los apaga acá, el local no los puede volver a prender.
+ */
+function RemindersToggle({ card, token }: { card: LoyaltyCard; token: string }) {
+  const mutation = useSetCardReminders(token);
+  const c = t.loyalty.card;
+  const enabled = mutation.isPending ? mutation.variables : card.member.remindersEnabled;
+
+  return (
+    <section aria-labelledby="card-reminders" className="bg-card grid gap-2 rounded-lg border px-4 py-3 text-sm">
+      <h2 id="card-reminders" className="font-medium">
+        {c.remindersTitle}
+      </h2>
+      <label className="flex items-start gap-3">
+        <Checkbox
+          className="mt-0.5 size-5"
+          checked={enabled}
+          disabled={mutation.isPending}
+          onChange={(event) => {
+            mutation.mutate(event.target.checked);
+          }}
+        />
+        <span>{c.remindersLabel.replace('{business}', card.business.name)}</span>
+      </label>
+      <p aria-live="polite" className="text-muted-foreground text-xs">
+        {mutation.isSuccess ? (mutation.data ? c.remindersOn : c.remindersOff) : null}
+      </p>
+      {mutation.isError && (
+        <Alert variant="destructive">
+          <AlertDescription>{errorMessage(mutation.error)}</AlertDescription>
+        </Alert>
+      )}
+    </section>
   );
 }
 

@@ -182,7 +182,9 @@ function SignupForm({
           <Checkbox
             className="mt-0.5 size-5"
             aria-invalid={errors.acceptTerms !== undefined}
-            aria-describedby={errors.acceptTerms === undefined ? undefined : 'signup-accept-error'}
+            aria-describedby={
+              errors.acceptTerms === undefined ? 'signup-whatsapp-notice' : 'signup-whatsapp-notice signup-accept-error'
+            }
             {...register('acceptTerms')}
           />
           <span>
@@ -193,6 +195,10 @@ function SignupForm({
             {s.acceptAfter}
           </span>
         </label>
+        {/* Parte de las condiciones que se aceptan: los recordatorios por WhatsApp (ver `TermsVersion`). */}
+        <p id="signup-whatsapp-notice" className="text-muted-foreground pl-8 text-xs">
+          {s.whatsAppNotice.replace('{business}', businessName)}
+        </p>
         {errors.acceptTerms?.message !== undefined && (
           <p id="signup-accept-error" role="alert" className="text-destructive text-sm">
             {errors.acceptTerms.message}

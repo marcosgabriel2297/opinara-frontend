@@ -23,6 +23,7 @@ import { t } from '@/i18n';
 import { LoyaltyUpsell } from '../components/loyalty-upsell';
 import { ProgramMembers } from '../components/program-members';
 import { ProgramSettings } from '../components/program-settings';
+import { ReminderSettings } from '../components/reminder-settings';
 import { type LoyaltyProgram } from '../api/schemas';
 import { useProgram, useProgramQr } from '../queries';
 
@@ -120,6 +121,22 @@ function ProgramDetail({ businessUrn, programUrn }: { businessUrn: string; progr
                 </CardContent>
               </Card>
               {canManage && <ProgramSettings key={program.urn} businessUrn={businessUrn} program={program} />}
+              {canManage && (
+                <ReminderSettings
+                  key={`near-${program.urn}`}
+                  businessUrn={businessUrn}
+                  program={program}
+                  kind="nearReward"
+                />
+              )}
+              {canManage && (
+                <ReminderSettings
+                  key={`inactive-${program.urn}`}
+                  businessUrn={businessUrn}
+                  program={program}
+                  kind="inactive"
+                />
+              )}
             </div>
           </div>
 
